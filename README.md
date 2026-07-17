@@ -55,7 +55,23 @@ wget -O - https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/in
 wget -O - https://gh-proxy.com/https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/install.sh | ash
 ```
 
-To install packages from your own forked package feed, override `NIKKI_REPOSITORY_URL`:
+### C. Install LuCI changes from this fork
+
+If Nikki is already installed and you only need the forked LuCI feature "upload profile, select it and reload", run:
+
+```shell
+wget -O - https://gh-proxy.com/https://github.com/yanjinbin/OpenWrt-nikki/raw/refs/heads/main/install-luci-patch.sh | ash
+```
+
+The script overwrites these runtime files and restarts `rpcd` / `uhttpd`:
+
+- `/www/luci-static/resources/tools/nikki.js`
+- `/www/luci-static/resources/view/nikki/profile.js`
+- `/usr/share/rpcd/ucode/luci.nikki`
+
+After installation, hard refresh the browser, open `Services -> Nikki -> Profile`, upload a `.yaml/.yml` file, then click `Use Selected Profile and Reload`.
+
+To install packages from your own forked full package feed, override `NIKKI_REPOSITORY_URL`:
 
 ```shell
 wget -O - https://gh-proxy.com/https://github.com/yanjinbin/OpenWrt-nikki/raw/refs/heads/main/feed.sh | NIKKI_REPOSITORY_URL="https://your-package-feed.example.com" ash

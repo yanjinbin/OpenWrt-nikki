@@ -55,7 +55,23 @@ wget -O - https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/in
 wget -O - https://gh-proxy.com/https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/install.sh | ash
 ```
 
-如需安装 fork 后自行编译发布的包源，可指定 `NIKKI_REPOSITORY_URL`：
+### C. 安装当前 fork 的魔改 LuCI 功能
+
+如果已经安装过 Nikki，并且只想使用本 fork 增加的“上传配置文件后选中并重载”功能，执行：
+
+```shell
+wget -O - https://gh-proxy.com/https://github.com/yanjinbin/OpenWrt-nikki/raw/refs/heads/main/install-luci-patch.sh | ash
+```
+
+该脚本会覆盖安装以下运行文件，并重启 `rpcd` / `uhttpd`：
+
+- `/www/luci-static/resources/tools/nikki.js`
+- `/www/luci-static/resources/view/nikki/profile.js`
+- `/usr/share/rpcd/ucode/luci.nikki`
+
+安装后强制刷新浏览器，进入 `服务 -> Nikki -> 配置文件`，上传 `.yaml/.yml` 后点击“选中并重载”。
+
+如需安装 fork 后自行编译发布的完整包源，可指定 `NIKKI_REPOSITORY_URL`：
 
 ```shell
 wget -O - https://gh-proxy.com/https://github.com/yanjinbin/OpenWrt-nikki/raw/refs/heads/main/feed.sh | NIKKI_REPOSITORY_URL="https://your-package-feed.example.com" ash
