@@ -2,7 +2,10 @@
 
 这是基于原版 [OpenWrt-nikki](https://github.com/nikkinikki-org/OpenWrt-nikki) 的 LuCI patch。
 
-本仓库不提供完整 Nikki 安装说明，只用于给已经安装原版 Nikki 的 OpenWrt 设备增加配置文件上传增强功能。
+本仓库支持两种安装方式：
+
+- 从 0 安装原版 Nikki，并自动应用当前魔改补丁。
+- 对已经安装原版 Nikki / luci-app-nikki 的设备直接应用补丁。
 
 ## 功能
 
@@ -19,9 +22,19 @@
 
 ![上传并选中重载效果](docs/images/nikki-profile-upload-reload.png)
 
-## 安装
+## 从 0 安装
 
-前提：设备上已经安装原版 Nikki / luci-app-nikki。
+适用于未安装 Nikki 的设备。脚本会先安装原版 Nikki 基础包，再应用当前 fork 的 LuCI/RPC 魔改补丁。
+
+在 OpenWrt 设备 SSH 中执行：
+
+```shell
+wget -O - "https://gh-proxy.com/https://github.com/yanjinbin/OpenWrt-nikki/raw/refs/heads/main/install-patched.sh?ts=$(date +%s)" | ash
+```
+
+## 已安装 Nikki 后应用补丁
+
+适用于已经安装原版 Nikki / luci-app-nikki 的设备。
 
 在 OpenWrt 设备 SSH 中执行：
 
@@ -29,7 +42,7 @@
 wget -O - "https://gh-proxy.com/https://github.com/yanjinbin/OpenWrt-nikki/raw/refs/heads/main/install-luci-patch.sh?ts=$(date +%s)" | ash
 ```
 
-脚本会覆盖以下运行文件：
+补丁脚本会覆盖以下运行文件：
 
 ```text
 /www/luci-static/resources/tools/nikki.js
@@ -53,7 +66,7 @@ rm -rf /tmp/luci-indexcache /tmp/luci-modulecache
 
 ## 卸载 / 回滚
 
-重新安装原版 `luci-app-nikki` 即可回滚本补丁。
+重新安装原版 `luci-app-nikki` 即可回滚本补丁。需要完整卸载 Nikki 时，请使用原版 OpenWrt-nikki 的卸载方式。
 
 opkg 系统：
 
