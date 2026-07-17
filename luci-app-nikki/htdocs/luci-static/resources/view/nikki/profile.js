@@ -28,37 +28,37 @@ return view.extend({
 
         o = s.option(form.Button, '_activate_profile');
         o.inputstyle = 'positive';
-        o.inputtitle = _('Use Selected Profile and Reload');
+        o.inputtitle = _('选中并重载');
         o.onclick = function (_, section_id) {
             const uploadOption = m.lookupOption('_upload_profile', section_id)[0];
             let profileName = uploadOption.formvalue(section_id);
 
             if (!profileName) {
-                return Promise.reject(_('Please select a profile file first.'));
+                return Promise.reject(_('请先选择一个配置文件。'));
             }
 
             profileName = profileName.substring(profileName.lastIndexOf('/') + 1);
 
             if (!profileName || profileName.indexOf('..') >= 0 || !profileName.match(/\.ya?ml$/)) {
-                return Promise.reject(_('Please select a valid .yaml or .yml profile file.'));
+                return Promise.reject(_('请选择有效的 .yaml 或 .yml 配置文件。'));
             }
 
             return nikki.activateProfile(profileName).then(function (res) {
                 if (!res.success) {
-                    return Promise.reject(res.message || _('Failed to activate profile.'));
+                    return Promise.reject(res.message || _('启用配置文件失败。'));
                 }
 
                 return nikki.status().then(function (running) {
                     if (!running) {
-                        return Promise.reject(_('Profile selected and reload command completed, but Nikki is not running.'));
+                        return Promise.reject(_('配置文件已选中，重载命令已完成，但 Nikki 未运行。'));
                     }
 
-                    ui.addNotification(null, E('p', _('Profile selected and service reloaded successfully: ') + (res.profile_name || profileName)), 'info');
+                    ui.addNotification(null, E('p', _('已选中并重载成功：') + (res.profile_name || profileName)), 'info');
                     return Promise.resolve();
                 });
             }).catch(function (e) {
-                const message = e?.message || e || _('Failed to activate profile.');
-                ui.addNotification(null, E('p', _('Profile activation failed: ') + message), 'danger');
+                const message = e?.message || e || _('启用配置文件失败。');
+                ui.addNotification(null, E('p', _('启用配置文件失败：') + message), 'danger');
                 return Promise.reject(message);
             });
         };

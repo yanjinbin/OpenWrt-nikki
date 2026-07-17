@@ -67,36 +67,36 @@ const methods = {
 		call: function(req) {
 			const profile_name = trim(req.args?.profile_name ?? '');
 			if (!profile_name) {
-				return { success: false, message: 'No profile selected.' };
+				return { success: false, message: '未选择配置文件。' };
 			}
 			if (index(profile_name, '/') >= 0 || index(profile_name, '\\') >= 0 || index(profile_name, '..') >= 0) {
-				return { success: false, message: 'Invalid profile name.' };
+				return { success: false, message: '配置文件名无效。' };
 			}
 			const profile_name_len = length(profile_name);
 			if (
 				(profile_name_len <= 5 || substr(profile_name, profile_name_len - 5) != '.yaml') &&
 				(profile_name_len <= 4 || substr(profile_name, profile_name_len - 4) != '.yml')
 			) {
-				return { success: false, message: 'Only .yaml and .yml profiles are supported.' };
+				return { success: false, message: '仅支持 .yaml 和 .yml 配置文件。' };
 			}
 			if (!access('/etc/nikki/profiles/' + profile_name, 'r')) {
-				return { success: false, message: 'Profile file not found.' };
+				return { success: false, message: '配置文件不存在。' };
 			}
 
 			if (system(['uci', 'set', 'nikki.config.profile=file:' + profile_name]) != 0) {
-				return { success: false, message: 'Failed to select profile.' };
+				return { success: false, message: '选择配置文件失败。' };
 			}
 			if (system(['uci', 'commit', 'nikki']) != 0) {
-				return { success: false, message: 'Failed to save profile selection.' };
+				return { success: false, message: '保存配置文件选择失败。' };
 			}
 			if (system(['service', 'nikki', 'reload']) != 0) {
-				return { success: false, message: 'Profile selected, but service reload failed.' };
+				return { success: false, message: '配置文件已选中，但服务重载失败。' };
 			}
 
 			return {
 				success: true,
 				profile_name: profile_name,
-				message: 'Profile selected and service reloaded successfully.'
+				message: '配置文件已选中并重载成功。'
 			};
 		}
 	},
