@@ -76,3 +76,39 @@ rm -rf /tmp/luci-indexcache /tmp/luci-modulecache
 - 该补丁只修改 LuCI/RPC 文件，不替换 `nikki` 和 `mihomo` 核心包。
 - 如果后续升级原版 `luci-app-nikki`，本补丁可能会被覆盖，需要重新执行安装命令。
 - 如果 `gh-proxy.com` 不可用，可以去掉代理前缀，直接使用 GitHub raw 地址。
+
+## 编译
+
+```shell
+# 添加源
+echo "src-git nikki https://github.com/yanjinbin/OpenWrt-nikki.git;main" >> "feeds.conf.default"
+# 更新并安装源
+./scripts/feeds update -a
+./scripts/feeds install -a
+# 编译
+make package/luci-app-nikki/compile
+```
+
+编译结果可以在 `bin/packages/your_architecture/nikki` 内找到。
+
+## 依赖
+
+- ca-bundle
+- curl
+- yq
+- firewall4
+- ip-full
+- kmod-inet-diag
+- kmod-nft-socket
+- kmod-nft-tproxy
+- kmod-tun
+- kmod-dummy
+
+## 贡献者
+
+[![贡献者](https://contrib.rocks/image?repo=nikkinikki-org/OpenWrt-nikki)](https://github.com/nikkinikki-org/OpenWrt-nikki/graphs/contributors)
+
+## 特别感谢
+
+- [@ApoisL](https://github.com/apoiston)
+- [@xishang0128](https://github.com/xishang0128)
