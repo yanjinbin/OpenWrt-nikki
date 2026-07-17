@@ -15,6 +15,10 @@
   - 检查 Nikki 运行状态
   - 显示成功或失败通知
 
+## 效果截图
+
+![上传并选中重载效果](docs/images/nikki-profile-upload-reload.png)
+
 ## 安装
 
 前提：设备上已经安装原版 Nikki / luci-app-nikki。
