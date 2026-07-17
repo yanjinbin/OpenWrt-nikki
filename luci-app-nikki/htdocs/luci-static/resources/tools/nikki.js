@@ -45,6 +45,13 @@ const callNikkiUpdateSubscription = rpc.declare({
     expect: { '': {} }
 });
 
+const callNikkiActivateProfile = rpc.declare({
+    object: 'luci.nikki',
+    method: 'activate_profile',
+    params: ['profile_name'],
+    expect: { '': {} }
+});
+
 const callNikkiAPI = rpc.declare({
     object: 'luci.nikki',
     method: 'api',
@@ -139,6 +146,10 @@ return baseclass.extend({
 
     updateSubscription: function (section_id) {
         return callNikkiUpdateSubscription(section_id);
+    },
+
+    activateProfile: function (profile_name) {
+        return callNikkiActivateProfile(profile_name);
     },
 
     updateDashboard: function () {

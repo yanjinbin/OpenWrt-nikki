@@ -29,6 +29,8 @@ Transparent Proxy with Mihomo on OpenWrt.
 ```shell
 # only needs to be run once
 wget -O - https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash
+# use a GitHub proxy if GitHub is slow or blocked
+wget -O - https://gh-proxy.com/https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash
 ```
 
 2. Install
@@ -49,6 +51,14 @@ apk add luci-i18n-nikki-zh-cn
 
 ```shell
 wget -O - https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/install.sh | ash
+# use a GitHub proxy if GitHub is slow or blocked
+wget -O - https://gh-proxy.com/https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/install.sh | ash
+```
+
+To install packages from your own forked package feed, override `NIKKI_REPOSITORY_URL`:
+
+```shell
+wget -O - https://gh-proxy.com/https://github.com/yanjinbin/OpenWrt-nikki/raw/refs/heads/main/feed.sh | NIKKI_REPOSITORY_URL="https://your-package-feed.example.com" ash
 ```
 
 ## Uninstall & Reset

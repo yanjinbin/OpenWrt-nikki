@@ -29,6 +29,8 @@
 ```shell
 # 只需运行一次
 wget -O - https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash
+# GitHub 访问较慢时可使用代理
+wget -O - https://gh-proxy.com/https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash
 ```
 
 2. 安装
@@ -49,6 +51,14 @@ apk add luci-i18n-nikki-zh-cn
 
 ```shell
 wget -O - https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/install.sh | ash
+# GitHub 访问较慢时可使用代理
+wget -O - https://gh-proxy.com/https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/install.sh | ash
+```
+
+如需安装 fork 后自行编译发布的包源，可指定 `NIKKI_REPOSITORY_URL`：
+
+```shell
+wget -O - https://gh-proxy.com/https://github.com/yanjinbin/OpenWrt-nikki/raw/refs/heads/main/feed.sh | NIKKI_REPOSITORY_URL="https://your-package-feed.example.com" ash
 ```
 
 ## 卸载并重置

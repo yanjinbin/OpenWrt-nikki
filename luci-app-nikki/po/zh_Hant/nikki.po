@@ -1125,3 +1125,24 @@ msgstr "使用者名稱"
 #: applications/luci-app-nikki/htdocs/luci-static/resources/view/nikki/app.js:128
 msgid "procd Config"
 msgstr "procd 設定"
+
+msgid "Use Selected Profile and Reload"
+msgstr "選中並重載"
+
+msgid "Please select a profile file first."
+msgstr "請先選擇一個設定檔。"
+
+msgid "Please select a valid .yaml or .yml profile file."
+msgstr "請選擇有效的 .yaml 或 .yml 設定檔。"
+
+msgid "Failed to activate profile."
+msgstr "啟用設定檔失敗。"
+
+msgid "Profile selected and service reloaded successfully: "
+msgstr "已選中並重載成功："
+
+msgid "Profile activation failed: "
+msgstr "啟用設定檔失敗："
+
+msgid "Profile selected and reload command completed, but Nikki is not running."
+msgstr "設定檔已選中，重載命令已完成，但 Nikki 未執行。"

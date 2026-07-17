@@ -2,6 +2,7 @@
 'require form';
 'require view';
 'require uci';
+'require ui';
 'require tools.nikki as nikki';
 
 return view.extend({
@@ -23,6 +24,43 @@ return view.extend({
         o.root_directory = nikki.profilesDir;
         o.write = function (section_id, formvalue) {
             return true;
+        };
+
+        o = s.option(form.Button, '_activate_profile');
+        o.inputstyle = 'positive';
+        o.inputtitle = _('Use Selected Profile and Reload');
+        o.onclick = function (_, section_id) {
+            const uploadOption = m.lookupOption('_upload_profile', section_id)[0];
+            let profileName = uploadOption.formvalue(section_id);
+
+            if (!profileName) {
+                return Promise.reject(_('Please select a profile file first.'));
+            }
+
+            profileName = profileName.substring(profileName.lastIndexOf('/') + 1);
+
+            if (!profileName || profileName.indexOf('..') >= 0 || !profileName.match(/\.ya?ml$/)) {
+                return Promise.reject(_('Please select a valid .yaml or .yml profile file.'));
+            }
+
+            return nikki.activateProfile(profileName).then(function (res) {
+                if (!res.success) {
+                    return Promise.reject(res.message || _('Failed to activate profile.'));
+                }
+
+                return nikki.status().then(function (running) {
+                    if (!running) {
+                        return Promise.reject(_('Profile selected and reload command completed, but Nikki is not running.'));
+                    }
+
+                    ui.addNotification(null, E('p', _('Profile selected and service reloaded successfully: ') + (res.profile_name || profileName)), 'info');
+                    return Promise.resolve();
+                });
+            }).catch(function (e) {
+                const message = e?.message || e || _('Failed to activate profile.');
+                ui.addNotification(null, E('p', _('Profile activation failed: ') + message), 'danger');
+                return Promise.reject(message);
+            });
         };
 
         s = m.section(form.GridSection, 'subscription', _('Subscription'));

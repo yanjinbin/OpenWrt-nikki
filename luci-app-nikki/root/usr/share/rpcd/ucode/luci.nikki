@@ -62,6 +62,44 @@ const methods = {
 			return { success: success };
 		}
 	},
+	activate_profile: {
+		args: { profile_name: 'profile_name' },
+		call: function(req) {
+			const profile_name = trim(req.args?.profile_name ?? '');
+			if (!profile_name) {
+				return { success: false, message: 'No profile selected.' };
+			}
+			if (index(profile_name, '/') >= 0 || index(profile_name, '\\') >= 0 || index(profile_name, '..') >= 0) {
+				return { success: false, message: 'Invalid profile name.' };
+			}
+			const profile_name_len = length(profile_name);
+			if (
+				(profile_name_len <= 5 || substr(profile_name, profile_name_len - 5) != '.yaml') &&
+				(profile_name_len <= 4 || substr(profile_name, profile_name_len - 4) != '.yml')
+			) {
+				return { success: false, message: 'Only .yaml and .yml profiles are supported.' };
+			}
+			if (!access('/etc/nikki/profiles/' + profile_name, 'r')) {
+				return { success: false, message: 'Profile file not found.' };
+			}
+
+			if (system(['uci', 'set', 'nikki.config.profile=file:' + profile_name]) != 0) {
+				return { success: false, message: 'Failed to select profile.' };
+			}
+			if (system(['uci', 'commit', 'nikki']) != 0) {
+				return { success: false, message: 'Failed to save profile selection.' };
+			}
+			if (system(['service', 'nikki', 'reload']) != 0) {
+				return { success: false, message: 'Profile selected, but service reload failed.' };
+			}
+
+			return {
+				success: true,
+				profile_name: profile_name,
+				message: 'Profile selected and service reloaded successfully.'
+			};
+		}
+	},
 	api: {
 		args: { method: 'method', path: 'path', query: 'query', body: 'body' },
 		call: function(req) {

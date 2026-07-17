@@ -1118,3 +1118,24 @@ msgstr ""
 #: applications/luci-app-nikki/htdocs/luci-static/resources/view/nikki/app.js:128
 msgid "procd Config"
 msgstr ""
+
+msgid "Use Selected Profile and Reload"
+msgstr ""
+
+msgid "Please select a profile file first."
+msgstr ""
+
+msgid "Please select a valid .yaml or .yml profile file."
+msgstr ""
+
+msgid "Failed to activate profile."
+msgstr ""
+
+msgid "Profile selected and service reloaded successfully: "
+msgstr ""
+
+msgid "Profile activation failed: "
+msgstr ""
+
+msgid "Profile selected and reload command completed, but Nikki is not running."
+msgstr ""
