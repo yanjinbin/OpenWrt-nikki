@@ -8,13 +8,20 @@ RAW_BASE="${NIKKI_RAW_BASE:-https://github.com/yanjinbin/OpenWrt-nikki/raw/refs/
 GITHUB_PROXY="${GITHUB_PROXY:-https://gh-proxy.com/}"
 DESTDIR="${DESTDIR:-}"
 RESTART_SERVICES="${RESTART_SERVICES:-1}"
+CACHE_BUSTER="${NIKKI_CACHE_BUSTER:-$(date +%s)}"
 
 raw_url() {
+	local url
 	if [ -n "$GITHUB_PROXY" ]; then
-		printf "%s%s/%s" "$GITHUB_PROXY" "$RAW_BASE" "$1"
+		url="${GITHUB_PROXY}${RAW_BASE}/$1"
 	else
-		printf "%s/%s" "$RAW_BASE" "$1"
+		url="${RAW_BASE}/$1"
 	fi
+
+	case "$url" in
+		*\?*) printf "%s&ts=%s" "$url" "$CACHE_BUSTER" ;;
+		*) printf "%s?ts=%s" "$url" "$CACHE_BUSTER" ;;
+	esac
 }
 
 download() {

@@ -58,7 +58,7 @@ wget -O - https://gh-proxy.com/https://github.com/nikkinikki-org/OpenWrt-nikki/r
 如果已经安装过 Nikki，并且只想使用本 fork 增加的“上传配置文件后选中并重载”功能，执行：
 
 ```shell
-wget -O - https://gh-proxy.com/https://github.com/yanjinbin/OpenWrt-nikki/raw/refs/heads/main/install-luci-patch.sh | ash
+wget -O - "https://gh-proxy.com/https://github.com/yanjinbin/OpenWrt-nikki/raw/refs/heads/main/install-luci-patch.sh?ts=$(date +%s)" | ash
 ```
 
 该脚本会覆盖安装以下运行文件，并重启 `rpcd` / `uhttpd`：
