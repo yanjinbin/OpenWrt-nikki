@@ -1,140 +1,78 @@
-![GitHub License](https://img.shields.io/github/license/nikkinikki-org/OpenWrt-nikki?style=for-the-badge&logo=github) ![GitHub Tag](https://img.shields.io/github/v/release/nikkinikki-org/OpenWrt-nikki?style=for-the-badge&logo=github) ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/nikkinikki-org/OpenWrt-nikki/total?style=for-the-badge&logo=github) ![GitHub Repo stars](https://img.shields.io/github/stars/nikkinikki-org/OpenWrt-nikki?style=for-the-badge&logo=github) [![Telegram](https://img.shields.io/badge/Telegram-gray?style=for-the-badge&logo=telegram)](https://t.me/nikkinikki_org)
+# Nikki 配置文件上传增强补丁
 
-# Nikki
+这是基于原版 [OpenWrt-nikki](https://github.com/nikkinikki-org/OpenWrt-nikki) 的 LuCI patch。
 
-在 OpenWrt 上使用 Mihomo 进行透明代理。
-
-## 环境要求
-
-- OpenWrt >= 24.10
-- Linux Kernel >= 5.13
-- firewall4
+本仓库不提供完整 Nikki 安装说明，只用于给已经安装原版 Nikki 的 OpenWrt 设备增加配置文件上传增强功能。
 
 ## 功能
 
-- 透明代理 (Redirect/TPROXY/TUN, IPv4 和/或 IPv6)
-- 访问控制
-- 配置文件混入
-- 配置文件编辑器
-- 定时重启
+- 保留原版“只上传配置文件”能力。
+- 新增“上传并选中重载”联合按钮。
+- 选择本地 `.yaml` / `.yml` 后，一键完成：
+  - 上传到 `/etc/nikki/profiles/`
+  - 设为当前 Nikki profile
+  - 重载 Nikki
+  - 检查 Nikki 运行状态
+  - 显示成功或失败通知
 
-## 安装和更新
+## 安装
 
-### A. 从软件源安装（推荐）
+前提：设备上已经安装原版 Nikki / luci-app-nikki。
 
-1. 添加源
-
-```shell
-# 只需运行一次
-wget -O - https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash
-# GitHub 访问较慢时可使用代理
-wget -O - https://gh-proxy.com/https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash
-```
-
-2. 安装
-
-```shell
-# 你可以从 shell 执行命令安装或者从 LuCI 的`软件包`菜单安装
-# for opkg
-opkg install nikki
-opkg install luci-app-nikki
-opkg install luci-i18n-nikki-zh-cn
-# for apk
-apk add nikki
-apk add luci-app-nikki
-apk add luci-i18n-nikki-zh-cn
-```
-
-### B. 从发行版安装
-
-```shell
-wget -O - https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/install.sh | ash
-# GitHub 访问较慢时可使用代理
-wget -O - https://gh-proxy.com/https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/install.sh | ash
-```
-
-### C. 安装当前 fork 的魔改 LuCI 功能
-
-如果已经安装过 Nikki，并且只想使用本 fork 增加的“上传配置文件后选中并重载”功能，执行：
+在 OpenWrt 设备 SSH 中执行：
 
 ```shell
 wget -O - "https://gh-proxy.com/https://github.com/yanjinbin/OpenWrt-nikki/raw/refs/heads/main/install-luci-patch.sh?ts=$(date +%s)" | ash
 ```
 
-该脚本会覆盖安装以下运行文件，并重启 `rpcd` / `uhttpd`：
+脚本会覆盖以下运行文件：
 
-- `/www/luci-static/resources/tools/nikki.js`
-- `/www/luci-static/resources/view/nikki/profile.js`
-- `/usr/share/rpcd/ucode/luci.nikki`
-
-安装后强制刷新浏览器，进入 `服务 -> Nikki -> 配置文件`，上传 `.yaml/.yml` 后点击“选中并重载”。
-
-如需安装 fork 后自行编译发布的完整包源，可指定 `NIKKI_REPOSITORY_URL`：
-
-```shell
-wget -O - https://gh-proxy.com/https://github.com/yanjinbin/OpenWrt-nikki/raw/refs/heads/main/feed.sh | NIKKI_REPOSITORY_URL="https://your-package-feed.example.com" ash
+```text
+/www/luci-static/resources/tools/nikki.js
+/www/luci-static/resources/view/nikki/profile.js
+/usr/share/rpcd/ucode/luci.nikki
 ```
 
-## 卸载并重置
+并自动执行：
 
 ```shell
-wget -O - https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/uninstall.sh | ash
+/etc/init.d/rpcd restart
+/etc/init.d/uhttpd restart
+rm -rf /tmp/luci-indexcache /tmp/luci-modulecache
 ```
 
-## 如何使用
+安装后强制刷新浏览器，进入：
 
-查看 [Wiki](https://github.com/nikkinikki-org/OpenWrt-nikki/wiki)
+```text
+服务 -> Nikki -> 配置文件
+```
 
-## 如何工作
+## 卸载 / 回滚
 
-1. 混入并更新配置文件。
-2. 启动 Mihomo。
-3. 设置定时重启。
-4. 配置 IP 规则/路由。
-5. 生成防火墙配置并应用。
+重新安装原版 `luci-app-nikki` 即可回滚本补丁。
 
-注意上述步骤可能因配置而变动。
-
-## 编译
+opkg 系统：
 
 ```shell
-# 添加源
-echo "src-git nikki https://github.com/nikkinikki-org/OpenWrt-nikki.git;main" >> "feeds.conf.default"
-# 更新并安装源
-./scripts/feeds update -a
-./scripts/feeds install -a
-# 编译
-make package/luci-app-nikki/compile
+opkg update
+opkg install --force-reinstall luci-app-nikki
+/etc/init.d/rpcd restart
+/etc/init.d/uhttpd restart
+rm -rf /tmp/luci-indexcache /tmp/luci-modulecache
 ```
 
-编译结果可以在`bin/packages/your_architecture/nikki`内找到。
+apk 系统：
 
-## 依赖
+```shell
+apk update
+apk fix luci-app-nikki
+/etc/init.d/rpcd restart
+/etc/init.d/uhttpd restart
+rm -rf /tmp/luci-indexcache /tmp/luci-modulecache
+```
 
-- ca-bundle
-- curl
-- yq
-- firewall4
-- ip-full
-- kmod-inet-diag
-- kmod-nft-socket
-- kmod-nft-tproxy
-- kmod-tun
-- kmod-dummy
+## 注意事项
 
-## 贡献者
-
-[![贡献者](https://contrib.rocks/image?repo=nikkinikki-org/OpenWrt-nikki)](https://github.com/nikkinikki-org/OpenWrt-nikki/graphs/contributors)
-
-## 特别感谢
-
-- [@ApoisL](https://github.com/apoiston)
-- [@xishang0128](https://github.com/xishang0128)
-
-## 推荐机场
-
-推荐 Perfect Link
-
-路线全 IEPL、落地全 Akari 的机场，靠谱好用
-
-[官网](https://perfectlink.io) | [客服](https://t.me/PerfectlinksupportBot)
+- 该补丁只修改 LuCI/RPC 文件，不替换 `nikki` 和 `mihomo` 核心包。
+- 如果后续升级原版 `luci-app-nikki`，本补丁可能会被覆盖，需要重新执行安装命令。
+- 如果 `gh-proxy.com` 不可用，可以去掉代理前缀，直接使用 GitHub raw 地址。
