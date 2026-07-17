@@ -5,6 +5,24 @@
 'require ui';
 'require tools.nikki as nikki';
 
+function readLocalFile(file) {
+    if (file.text) {
+        return file.text();
+    }
+
+    return new Promise(function (resolve, reject) {
+        const reader = new FileReader();
+
+        reader.onload = function () {
+            resolve(reader.result);
+        };
+        reader.onerror = function () {
+            reject(reader.error || new Error(_('读取配置文件失败。')));
+        };
+        reader.readAsText(file);
+    });
+}
+
 return view.extend({
     load: function () {
         return Promise.all([
@@ -18,49 +36,80 @@ return view.extend({
 
         s = m.section(form.NamedSection, 'config', 'config', _('Profile'));
 
-        o = s.option(form.FileUpload, '_upload_profile', _('Upload Profile'));
+        o = s.option(form.FileUpload, '_profile_files', _('配置文件'));
         o.browser = true;
+        o.enable_upload = false;
         o.enable_download = true;
         o.root_directory = nikki.profilesDir;
         o.write = function (section_id, formvalue) {
             return true;
         };
 
-        o = s.option(form.Button, '_activate_profile');
-        o.inputstyle = 'positive';
-        o.inputtitle = _('选中并重载');
-        o.onclick = function (_, section_id) {
-            const uploadOption = m.lookupOption('_upload_profile', section_id)[0];
-            let profileName = uploadOption.formvalue(section_id);
+        o = s.option(form.DummyValue, '_upload_activate_profile', _('上传并重载'));
+        o.cfgvalue = function () {
+            const fileInput = E('input', {
+                'type': 'file',
+                'accept': '.yaml,.yml',
+                'style': 'max-width: 360px;'
+            });
+            const status = E('span', { 'style': 'margin-left: 8px;' });
+            const button = E('button', {
+                'class': 'cbi-button cbi-button-positive',
+                'style': 'margin-left: 8px;',
+                'click': function (ev) {
+                    ev.preventDefault();
 
-            if (!profileName) {
-                return Promise.reject(_('请先选择一个配置文件。'));
-            }
+                    const file = fileInput.files[0];
 
-            profileName = profileName.substring(profileName.lastIndexOf('/') + 1);
-
-            if (!profileName || profileName.indexOf('..') >= 0 || !profileName.match(/\.ya?ml$/)) {
-                return Promise.reject(_('请选择有效的 .yaml 或 .yml 配置文件。'));
-            }
-
-            return nikki.activateProfile(profileName).then(function (res) {
-                if (!res.success) {
-                    return Promise.reject(res.message || _('启用配置文件失败。'));
-                }
-
-                return nikki.status().then(function (running) {
-                    if (!running) {
-                        return Promise.reject(_('配置文件已选中，重载命令已完成，但 Nikki 未运行。'));
+                    if (!file) {
+                        ui.addNotification(null, E('p', _('请先选择一个配置文件。')), 'danger');
+                        return Promise.reject(_('请先选择一个配置文件。'));
                     }
 
-                    ui.addNotification(null, E('p', _('已选中并重载成功：') + (res.profile_name || profileName)), 'info');
-                    return Promise.resolve();
-                });
-            }).catch(function (e) {
-                const message = e?.message || e || _('启用配置文件失败。');
-                ui.addNotification(null, E('p', _('启用配置文件失败：') + message), 'danger');
-                return Promise.reject(message);
-            });
+                    const profileName = file.name.replace(/^.*[\\/]/, '');
+
+                    if (!profileName || profileName.indexOf('..') >= 0 || !profileName.match(/\.ya?ml$/)) {
+                        ui.addNotification(null, E('p', _('请选择有效的 .yaml 或 .yml 配置文件。')), 'danger');
+                        return Promise.reject(_('请选择有效的 .yaml 或 .yml 配置文件。'));
+                    }
+
+                    button.disabled = true;
+                    status.textContent = _('正在上传并重载...');
+
+                    return readLocalFile(file).then(function (content) {
+                        return nikki.writefile(nikki.profilesDir + '/' + profileName, content, 0o644);
+                    }).then(function () {
+                        return nikki.activateProfile(profileName);
+                    }).then(function (res) {
+                        if (!res.success) {
+                            return Promise.reject(res.message || _('启用配置文件失败。'));
+                        }
+
+                        return nikki.status().then(function (running) {
+                            if (!running) {
+                                return Promise.reject(_('配置文件已选中，重载命令已完成，但 Nikki 未运行。'));
+                            }
+
+                            ui.addNotification(null, E('p', _('已选中并重载成功：') + (res.profile_name || profileName)), 'info');
+                            status.textContent = _('已完成');
+                            return Promise.resolve();
+                        });
+                    }).catch(function (e) {
+                        const message = e?.message || e || _('启用配置文件失败。');
+                        ui.addNotification(null, E('p', _('启用配置文件失败：') + message), 'danger');
+                        status.textContent = _('失败');
+                        return Promise.reject(message);
+                    }).finally(function () {
+                        button.disabled = false;
+                    });
+                }
+            }, [ _('上传并选中重载') ]);
+
+            return E('div', { 'class': 'cbi-input-group' }, [
+                fileInput,
+                button,
+                status
+            ]);
         };
 
         s = m.section(form.GridSection, 'subscription', _('Subscription'));
