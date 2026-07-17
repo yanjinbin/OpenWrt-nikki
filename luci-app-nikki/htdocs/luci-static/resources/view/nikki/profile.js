@@ -38,7 +38,7 @@ return view.extend({
 
         o = s.option(form.FileUpload, '_profile_files', _('配置文件'));
         o.browser = true;
-        o.enable_upload = false;
+        o.enable_upload = true;
         o.enable_download = true;
         o.root_directory = nikki.profilesDir;
         o.write = function (section_id, formvalue) {
