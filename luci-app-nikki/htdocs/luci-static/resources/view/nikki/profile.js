@@ -19,7 +19,7 @@ function readLocalFile(file) {
         reader.onerror = function () {
             reject(reader.error || new Error(_('读取配置文件失败。')));
         };
-        reader.readAsText(file);
+        reader.readAsText(file, 'UTF-8');
     });
 }
 
