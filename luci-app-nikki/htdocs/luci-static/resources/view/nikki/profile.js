@@ -23,6 +23,30 @@ function readLocalFile(file) {
     });
 }
 
+function getProfileName(file) {
+    const profileName = file?.name?.replace(/^.*[\\/]/, '') ?? '';
+
+    if (!profileName || profileName.indexOf('..') >= 0 || !profileName.match(/\.ya?ml$/)) {
+        return null;
+    }
+
+    return profileName;
+}
+
+function uploadProfileFile(file) {
+    const profileName = getProfileName(file);
+
+    if (!profileName) {
+        return Promise.reject(_('请选择有效的 .yaml 或 .yml 配置文件。'));
+    }
+
+    return readLocalFile(file).then(function (content) {
+        return nikki.writefile(nikki.profilesDir + '/' + profileName, content, 0o644);
+    }).then(function () {
+        return profileName;
+    });
+}
+
 return view.extend({
     load: function () {
         return Promise.all([
@@ -66,9 +90,9 @@ return view.extend({
                         return Promise.reject(_('请先选择一个配置文件。'));
                     }
 
-                    const profileName = file.name.replace(/^.*[\\/]/, '');
+                    const profileName = getProfileName(file);
 
-                    if (!profileName || profileName.indexOf('..') >= 0 || !profileName.match(/\.ya?ml$/)) {
+                    if (!profileName) {
                         ui.addNotification(null, E('p', _('请选择有效的 .yaml 或 .yml 配置文件。')), 'danger');
                         return Promise.reject(_('请选择有效的 .yaml 或 .yml 配置文件。'));
                     }
@@ -76,9 +100,7 @@ return view.extend({
                     button.disabled = true;
                     status.textContent = _('正在上传并重载...');
 
-                    return readLocalFile(file).then(function (content) {
-                        return nikki.writefile(nikki.profilesDir + '/' + profileName, content, 0o644);
-                    }).then(function () {
+                    return uploadProfileFile(file).then(function () {
                         return nikki.activateProfile(profileName);
                     }).then(function (res) {
                         if (!res.success) {
@@ -104,6 +126,73 @@ return view.extend({
                     });
                 }
             }, [ _('上传并选中重载') ]);
+
+            return E('div', { 'class': 'cbi-input-group' }, [
+                fileInput,
+                button,
+                status
+            ]);
+        };
+
+        o = s.option(form.DummyValue, '_upload_profiles', _('批量上传'));
+        o.cfgvalue = function () {
+            const fileInput = E('input', {
+                'type': 'file',
+                'accept': '.yaml,.yml',
+                'multiple': 'multiple',
+                'style': 'max-width: 360px;'
+            });
+            const status = E('span', { 'style': 'margin-left: 8px;' });
+            const button = E('button', {
+                'class': 'cbi-button cbi-button-action',
+                'style': 'margin-left: 8px;',
+                'click': function (ev) {
+                    ev.preventDefault();
+
+                    const files = Array.prototype.slice.call(fileInput.files || []);
+
+                    if (!files.length) {
+                        ui.addNotification(null, E('p', _('请先选择一个或多个配置文件。')), 'danger');
+                        return Promise.reject(_('请先选择一个或多个配置文件。'));
+                    }
+
+                    const invalidFile = files.find(function (file) {
+                        return !getProfileName(file);
+                    });
+
+                    if (invalidFile) {
+                        ui.addNotification(null, E('p', _('请选择有效的 .yaml 或 .yml 配置文件。')), 'danger');
+                        return Promise.reject(_('请选择有效的 .yaml 或 .yml 配置文件。'));
+                    }
+
+                    button.disabled = true;
+                    status.textContent = _('正在上传...');
+
+                    let promise = Promise.resolve([]);
+                    files.forEach(function (file) {
+                        promise = promise.then(function (uploaded) {
+                            return uploadProfileFile(file).then(function (profileName) {
+                                uploaded.push(profileName);
+                                status.textContent = _('正在上传...') + ' ' + uploaded.length + '/' + files.length;
+                                return uploaded;
+                            });
+                        });
+                    });
+
+                    return promise.then(function (uploaded) {
+                        ui.addNotification(null, E('p', _('已上传配置文件：') + uploaded.join(', ')), 'info');
+                        status.textContent = _('已完成') + ' ' + uploaded.length + '/' + files.length;
+                        return Promise.resolve();
+                    }).catch(function (e) {
+                        const message = e?.message || e || _('上传配置文件失败。');
+                        ui.addNotification(null, E('p', _('上传配置文件失败：') + message), 'danger');
+                        status.textContent = _('失败');
+                        return Promise.reject(message);
+                    }).finally(function () {
+                        button.disabled = false;
+                    });
+                }
+            }, [ _('上传所选文件') ]);
 
             return E('div', { 'class': 'cbi-input-group' }, [
                 fileInput,

@@ -10,8 +10,9 @@
 ## 功能
 
 - 保留原版“只上传配置文件”能力。
+- 新增“批量上传”按钮，可一次选择多个本地 `.yaml` / `.yml`，只上传到 `/etc/nikki/profiles/`，不选中、不重载。
 - 新增“上传并选中重载”联合按钮。
-- 选择本地 `.yaml` / `.yml` 后，一键完成：
+- 选择单个本地 `.yaml` / `.yml` 后，一键完成：
   - 上传到 `/etc/nikki/profiles/`
   - 设为当前 Nikki profile
   - 重载 Nikki
@@ -25,8 +26,19 @@
 ## 从 0 安装
 
 适用于未安装 Nikki 的设备。脚本会先安装原版 Nikki 基础包，再应用当前 fork 的 LuCI/RPC 魔改补丁。
+默认从当前 fork 的最新 `main` 分支拉取文件，不固定到某个 tag 或 commit。
 
-在 OpenWrt 设备 SSH 中执行：
+在 OpenWrt 设备 SSH 中执行。优先使用直连安装：
+
+```shell
+export GITHUB_PROXY=
+export NIKKI_PATCH_RAW_BASE="https://raw.githubusercontent.com/yanjinbin/OpenWrt-nikki/main"
+export NIKKI_UPSTREAM_RAW_BASE="https://raw.githubusercontent.com/nikkinikki-org/OpenWrt-nikki/main"
+
+wget -O - "$NIKKI_PATCH_RAW_BASE/install-patched.sh?ts=$(date +%s)" | ash
+```
+
+如果直连 GitHub raw 不通，再使用代理安装：
 
 ```shell
 wget -O - "https://gh-proxy.com/https://github.com/yanjinbin/OpenWrt-nikki/raw/refs/heads/main/install-patched.sh?ts=$(date +%s)" | ash
@@ -35,8 +47,18 @@ wget -O - "https://gh-proxy.com/https://github.com/yanjinbin/OpenWrt-nikki/raw/r
 ## 已安装 Nikki 后应用补丁
 
 适用于已经安装原版 Nikki / luci-app-nikki 的设备。
+默认从当前 fork 的最新 `main` 分支拉取文件，不固定到某个 tag 或 commit。
 
-在 OpenWrt 设备 SSH 中执行：
+在 OpenWrt 设备 SSH 中执行。优先使用直连安装：
+
+```shell
+export GITHUB_PROXY=
+export NIKKI_RAW_BASE="https://raw.githubusercontent.com/yanjinbin/OpenWrt-nikki/main"
+
+wget -O - "$NIKKI_RAW_BASE/install-luci-patch.sh?ts=$(date +%s)" | ash
+```
+
+如果直连 GitHub raw 不通，再使用代理安装：
 
 ```shell
 wget -O - "https://gh-proxy.com/https://github.com/yanjinbin/OpenWrt-nikki/raw/refs/heads/main/install-luci-patch.sh?ts=$(date +%s)" | ash
@@ -92,7 +114,7 @@ rm -rf /tmp/luci-indexcache /tmp/luci-modulecache
 
 - 该补丁只修改 LuCI/RPC 文件，不替换 `nikki` 和 `mihomo` 核心包。
 - 如果后续升级原版 `luci-app-nikki`，本补丁可能会被覆盖，需要重新执行安装命令。
-- 如果 `gh-proxy.com` 不可用，可以去掉代理前缀，直接使用 GitHub raw 地址。
+- 如果 `gh-proxy.com` 返回 429 或不可用，使用上面的“直连安装”命令。
 
 ## 编译
 
