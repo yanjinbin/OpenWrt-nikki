@@ -21,7 +21,7 @@
 
 ## 效果截图
 
-![上传并选中重载效果](docs/images/nikki-profile-upload-reload.png)
+![批量上传和上传并选中重载效果](docs/images/nikki-profile-upload-reload.png)
 
 ## 从 0 安装
 
