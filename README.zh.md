@@ -77,7 +77,7 @@ wget -O - "https://gh-proxy.com/https://github.com/yanjinbin/OpenWrt-nikki/raw/r
 ```shell
 /etc/init.d/rpcd restart
 /etc/init.d/uhttpd restart
-rm -rf /tmp/luci-indexcache /tmp/luci-modulecache
+rm -rf /tmp/luci-indexcache* /tmp/luci-modulecache*
 ```
 
 安装后强制刷新浏览器，进入：
@@ -85,6 +85,14 @@ rm -rf /tmp/luci-indexcache /tmp/luci-modulecache
 ```text
 服务 -> Nikki -> 配置文件
 ```
+
+如果页面仍看不到“批量上传”，先确认路由器实际服务的新文件：
+
+```shell
+wget -q -O - "http://127.0.0.1/luci-static/resources/view/nikki/profile.js?ts=$(date +%s)" | grep "批量上传"
+```
+
+能看到输出但浏览器没有变化时，关闭当前 Nikki 配置文件页后重新打开，或使用无痕窗口重新登录 LuCI。
 
 ## 卸载 / 回滚
 
@@ -97,7 +105,7 @@ opkg update
 opkg install --force-reinstall luci-app-nikki
 /etc/init.d/rpcd restart
 /etc/init.d/uhttpd restart
-rm -rf /tmp/luci-indexcache /tmp/luci-modulecache
+rm -rf /tmp/luci-indexcache* /tmp/luci-modulecache*
 ```
 
 apk 系统：
@@ -107,7 +115,7 @@ apk update
 apk fix luci-app-nikki
 /etc/init.d/rpcd restart
 /etc/init.d/uhttpd restart
-rm -rf /tmp/luci-indexcache /tmp/luci-modulecache
+rm -rf /tmp/luci-indexcache* /tmp/luci-modulecache*
 ```
 
 ## 注意事项

@@ -56,6 +56,6 @@ else
 fi
 
 echo "清理 LuCI 缓存"
-rm -rf "${DESTDIR}/tmp/luci-indexcache" "${DESTDIR}/tmp/luci-modulecache"
+rm -rf "${DESTDIR}"/tmp/luci-indexcache* "${DESTDIR}"/tmp/luci-modulecache*
 
 echo "安装完成"
