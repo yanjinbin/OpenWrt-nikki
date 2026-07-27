@@ -406,6 +406,10 @@ msgstr "Fake-IP6 範圍"
 msgid "Fast Reload"
 msgstr "快速重載"
 
+#: applications/luci-app-nikki/htdocs/luci-static/resources/view/nikki/app.js:135
+msgid "Clear Connections After Reload"
+msgstr "重載後清除舊連線"
+
 #: applications/luci-app-nikki/htdocs/luci-static/resources/view/nikki/mixin.js:511
 msgid "File Format"
 msgstr "檔案格式"

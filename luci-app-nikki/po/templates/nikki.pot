@@ -399,6 +399,10 @@ msgstr ""
 msgid "Fast Reload"
 msgstr ""
 
+#: applications/luci-app-nikki/htdocs/luci-static/resources/view/nikki/app.js:135
+msgid "Clear Connections After Reload"
+msgstr ""
+
 #: applications/luci-app-nikki/htdocs/luci-static/resources/view/nikki/mixin.js:511
 msgid "File Format"
 msgstr ""

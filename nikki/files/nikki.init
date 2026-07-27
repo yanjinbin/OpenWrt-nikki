@@ -436,9 +436,65 @@ service_stopped() {
 	cleanup
 }
 
+clear_connections_after_reload() {
+	# load config
+	config_load nikki
+	# get config
+	## procd config
+	local clear_connections_on_reload
+	config_get_bool clear_connections_on_reload "procd" "clear_connections_on_reload" 1
+	if [ "$clear_connections_on_reload" = 0 ]; then
+		return
+	fi
+	# check profile
+	if [ ! -f "$RUN_PROFILE_PATH" ]; then
+		log "Proxy" "Skip closing existing connections because profile is missing."
+		return
+	fi
+	# get profile api config
+	local api_listen api_tls_listen api_secret protocol controller port curl_insecure
+	api_listen=$(yq -M '."external-controller" // ""' "$RUN_PROFILE_PATH")
+	api_tls_listen=$(yq -M '."external-controller-tls" // ""' "$RUN_PROFILE_PATH")
+	api_secret=$(yq -M '.secret // ""' "$RUN_PROFILE_PATH")
+	if [ -n "$api_tls_listen" ]; then
+		protocol="https"
+		controller="$api_tls_listen"
+		curl_insecure="--insecure"
+	elif [ -n "$api_listen" ]; then
+		protocol="http"
+		controller="$api_listen"
+		curl_insecure=""
+	else
+		log "Proxy" "Skip closing existing connections because API is not configured."
+		return
+	fi
+	port=$(echo "$controller" | sed -n 's/.*:\([0-9][0-9]*\)$/\1/p')
+	[ -n "$port" ] || port="9090"
+	# close old connections after core api is ready
+	local i
+	i=0
+	while [ "$i" -lt 10 ]; do
+		if [ -n "$api_secret" ]; then
+			if curl -fsS --connect-timeout 2 --max-time 4 $curl_insecure -X DELETE -H "Authorization: Bearer $api_secret" "$protocol://127.0.0.1:$port/connections" > /dev/null 2>&1; then
+				log "Proxy" "Closed existing Mihomo connections after reload."
+				return
+			fi
+		else
+			if curl -fsS --connect-timeout 2 --max-time 4 $curl_insecure -X DELETE "$protocol://127.0.0.1:$port/connections" > /dev/null 2>&1; then
+				log "Proxy" "Closed existing Mihomo connections after reload."
+				return
+			fi
+		fi
+		i=$((i + 1))
+		sleep 1
+	done
+	log "Proxy" "Failed to close existing Mihomo connections after reload."
+}
+
 reload_service() {
 	cleanup
 	start
+	clear_connections_after_reload
 }
 
 service_triggers() {

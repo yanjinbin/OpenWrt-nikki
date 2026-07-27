@@ -12,6 +12,7 @@
 - 保留原版“只上传配置文件”能力。
 - 新增“批量上传”按钮，可一次选择多个本地 `.yaml` / `.yml`，只上传到 `/etc/nikki/profiles/`，不选中、不重载。
 - 新增“上传并选中重载”联合按钮。
+- 在全局 `procd` 配置新增“重载后清除旧连接”开关，Nikki 重载后自动关闭 Mihomo 旧连接，让客户端按新配置重新连接。
 - 选择单个本地 `.yaml` / `.yml` 后，一键完成：
   - 上传到 `/etc/nikki/profiles/`
   - 设为当前 Nikki profile
@@ -68,13 +69,16 @@ wget -O - "https://gh-proxy.com/https://github.com/yanjinbin/OpenWrt-nikki/raw/r
 
 ```text
 /www/luci-static/resources/tools/nikki.js
+/www/luci-static/resources/view/nikki/app.js
 /www/luci-static/resources/view/nikki/profile.js
 /usr/share/rpcd/ucode/luci.nikki
+/etc/init.d/nikki
 ```
 
 并自动执行：
 
 ```shell
+uci set nikki.procd.clear_connections_on_reload='1'   # 仅在该项不存在时写入
 /etc/init.d/rpcd restart
 /etc/init.d/uhttpd restart
 rm -rf /tmp/luci-indexcache* /tmp/luci-modulecache*
@@ -90,6 +94,8 @@ rm -rf /tmp/luci-indexcache* /tmp/luci-modulecache*
 
 ```shell
 wget -q -O - "http://127.0.0.1/luci-static/resources/view/nikki/profile.js?ts=$(date +%s)" | grep "批量上传"
+wget -q -O - "http://127.0.0.1/luci-static/resources/view/nikki/app.js?ts=$(date +%s)" | grep "Clear Connections After Reload"
+grep "clear_connections_after_reload" /etc/init.d/nikki
 ```
 
 能看到输出但浏览器没有变化时，关闭当前 Nikki 配置文件页后重新打开，或使用无痕窗口重新登录 LuCI。
@@ -120,7 +126,7 @@ rm -rf /tmp/luci-indexcache* /tmp/luci-modulecache*
 
 ## 注意事项
 
-- 该补丁只修改 LuCI/RPC 文件，不替换 `nikki` 和 `mihomo` 核心包。
+- 该补丁会修改 LuCI/RPC 文件和 `/etc/init.d/nikki` 服务脚本，不替换 `mihomo` 核心包。
 - 如果后续升级原版 `luci-app-nikki`，本补丁可能会被覆盖，需要重新执行安装命令。
 - 如果 `gh-proxy.com` 返回 429 或不可用，使用上面的“直连安装”命令。
 

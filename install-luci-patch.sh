@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# 从当前 fork 安装魔改后的 LuCI/RPC 文件，无需重新编译软件包。
+# 从当前 fork 安装魔改后的 LuCI/RPC/服务脚本文件，无需重新编译软件包。
 
 set -e
 
@@ -27,6 +27,7 @@ raw_url() {
 download() {
 	local source_path="$1"
 	local target_path="$2"
+	local mode="${3:-0644}"
 	local tmp_path="${target_path}.tmp"
 	local full_target_path="${DESTDIR}${target_path}"
 	local full_tmp_path="${DESTDIR}${tmp_path}"
@@ -35,17 +36,32 @@ download() {
 	mkdir -p "$(dirname "$full_target_path")"
 	wget -O "$full_tmp_path" "$(raw_url "$source_path")"
 	mv -f "$full_tmp_path" "$full_target_path"
-	chmod 0644 "$full_target_path"
+	chmod "$mode" "$full_target_path"
 }
 
 download "luci-app-nikki/htdocs/luci-static/resources/tools/nikki.js" \
 	"/www/luci-static/resources/tools/nikki.js"
+
+download "luci-app-nikki/htdocs/luci-static/resources/view/nikki/app.js" \
+	"/www/luci-static/resources/view/nikki/app.js"
 
 download "luci-app-nikki/htdocs/luci-static/resources/view/nikki/profile.js" \
 	"/www/luci-static/resources/view/nikki/profile.js"
 
 download "luci-app-nikki/root/usr/share/rpcd/ucode/luci.nikki" \
 	"/usr/share/rpcd/ucode/luci.nikki"
+
+download "nikki/files/nikki.init" \
+	"/etc/init.d/nikki" 0755
+
+echo "写入重载后清除旧连接默认开关"
+if [ -z "$(uci -q get nikki.procd)" ]; then
+	uci set nikki.procd='procd'
+fi
+if [ -z "$(uci -q get nikki.procd.clear_connections_on_reload)" ]; then
+	uci set nikki.procd.clear_connections_on_reload='1'
+	uci commit nikki
+fi
 
 if [ "$RESTART_SERVICES" = "1" ]; then
 	echo "重启 rpcd 和 uhttpd"

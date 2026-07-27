@@ -229,6 +229,10 @@ log_scheduled_clear_size_limit_unit=$(uci -q get nikki.log.scheduled_clear_size_
 
 config_clear_at_stop=$(uci -q get nikki.log.clear_at_stop); [ -z "$config_clear_at_stop" ] && uci set nikki.log.clear_at_stop=1
 
+# since v1.26.2
+
+procd_clear_connections_on_reload=$(uci -q get nikki.procd.clear_connections_on_reload); [ -z "$procd_clear_connections_on_reload" ] && uci set nikki.procd.clear_connections_on_reload=1
+
 # commit
 uci commit nikki
 

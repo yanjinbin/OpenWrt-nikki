@@ -132,6 +132,10 @@ return view.extend({
         o = s.taboption('general', form.Flag, 'fast_reload', _('Fast Reload'));
         o.rmempty = false;
 
+        o = s.taboption('general', form.Flag, 'clear_connections_on_reload', _('Clear Connections After Reload'));
+        o.rmempty = false;
+        o.default = '1';
+
         s.tab('rlimit', _('RLIMIT Config'));
 
         o = s.taboption('rlimit', form.Value, 'rlimit_nproc_soft', _('Number of Processes Soft Limit'));
