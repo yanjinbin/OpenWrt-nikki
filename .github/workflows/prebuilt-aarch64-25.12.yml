@@ -1,0 +1,47 @@
+name: Prebuilt nikki (aarch64 25.12)
+
+# 为 ImmortalWrt-ImageBuilder 预编译 nikki + luci-app-nikki (aarch64_generic / openwrt-25.12),
+# 发布为 release 资产, ImageBuilder 直接下载使用, 避免每次固件构建都跑 SDK 编译。
+# 下载地址 (始终指向最新一次构建):
+#   https://github.com/yanjinbin/OpenWrt-nikki/releases/latest/download/nikki-aarch64_generic-openwrt-25.12.tar.gz
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: SDK 编译 nikki + luci-app-nikki (aarch64_generic / 25.12)
+        uses: openwrt/gh-action-sdk@main
+        env:
+          ARCH: aarch64_generic-openwrt-25.12
+          FEEDNAME: nikki
+          PACKAGES: nikki luci-app-nikki
+          INDEX: 1
+          NO_REFRESH_CHECK: true
+          V: s
+
+      - name: 打包 apk 为 tarball
+        run: |
+          set -euo pipefail
+          find bin/packages -type f -name '*.apk' | sort
+          [ -d bin/packages/aarch64_generic/nikki ] || { echo "未找到 bin/packages/aarch64_generic/nikki"; exit 1; }
+          tar -c -z -f nikki-aarch64_generic-openwrt-25.12.tar.gz -C bin/packages/aarch64_generic/nikki .
+          ls -lah nikki-aarch64_generic-openwrt-25.12.tar.gz
+
+      - name: 发布预编译包
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: prebuilt-aarch64-25.12-${{ github.run_id }}
+          name: nikki prebuilt aarch64 25.12
+          body: |
+            yanjinbin/OpenWrt-nikki main 最新代码编译的预编译包 (aarch64_generic / openwrt-25.12)
+            下载: releases/latest/download/nikki-aarch64_generic-openwrt-25.12.tar.gz
+          files: nikki-aarch64_generic-openwrt-25.12.tar.gz
