@@ -21,7 +21,8 @@ jobs:
       - name: SDK 编译 nikki + luci-app-nikki (aarch64_generic / 25.12)
         uses: openwrt/gh-action-sdk@main
         env:
-          ARCH: aarch64_generic-openwrt-25.12
+          # 用 release 版 SDK 镜像 (自带 SDK, 无需运行时下载 258MB), 冷启动也快
+          ARCH: aarch64_generic-25.12.4
           FEEDNAME: nikki
           PACKAGES: nikki luci-app-nikki
           INDEX: 1
