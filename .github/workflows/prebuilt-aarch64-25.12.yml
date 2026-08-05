@@ -18,6 +18,10 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: 计算短 commit
+        id: commit
+        run: echo "short=${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+
       - name: SDK 编译 nikki + luci-app-nikki (aarch64_generic / 25.12)
         uses: openwrt/gh-action-sdk@main
         env:
@@ -34,15 +38,21 @@ jobs:
           set -euo pipefail
           find bin/packages -type f -name '*.apk' | sort
           [ -d bin/packages/aarch64_generic/nikki ] || { echo "未找到 bin/packages/aarch64_generic/nikki"; exit 1; }
+          echo "$GITHUB_SHA" > bin/packages/aarch64_generic/nikki/commit.txt
           tar -c -z -f nikki-aarch64_generic-openwrt-25.12.tar.gz -C bin/packages/aarch64_generic/nikki .
           ls -lah nikki-aarch64_generic-openwrt-25.12.tar.gz
+
+      - name: 清理同名旧 release (同 commit 重跑)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release delete "prebuilt-aarch64-25.12-${{ steps.commit.outputs.short }}" --yes --cleanup-tag || true
 
       - name: 发布预编译包
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: prebuilt-aarch64-25.12-${{ github.run_id }}
-          name: nikki prebuilt aarch64 25.12
+          tag_name: prebuilt-aarch64-25.12-${{ steps.commit.outputs.short }}
+          name: "nikki prebuilt aarch64 25.12 @ ${{ steps.commit.outputs.short }}"
           body: |
-            yanjinbin/OpenWrt-nikki main 最新代码编译的预编译包 (aarch64_generic / openwrt-25.12)
+            yanjinbin/OpenWrt-nikki commit `${{ github.sha }}` 编译的预编译包 (aarch64_generic / openwrt-25.12)
             下载: releases/latest/download/nikki-aarch64_generic-openwrt-25.12.tar.gz
           files: nikki-aarch64_generic-openwrt-25.12.tar.gz
