@@ -116,6 +116,7 @@ return baseclass.extend({
         mode = (mode != null) ? mode : 0o644;
 
         const encoder = new TextEncoder();
+        const decoder = new TextDecoder();
         const chunkSize = 8 * 1024;
 
         const bytes = encoder.encode(data);
@@ -125,33 +126,14 @@ return baseclass.extend({
         }
 
         let promise = Promise.resolve();
-        for(let offset = 0; offset < data.length;) {
-            let low = offset + 1;
-            let high = Math.min(data.length, offset + chunkSize);
-            let end = low;
-
-            while (low <= high) {
-                const mid = Math.floor((low + high) / 2);
-                const chunk = data.slice(offset, mid);
-
-                if (encoder.encode(chunk).length <= chunkSize) {
-                    end = mid;
-                    low = mid + 1;
-                } else {
-                    high = mid - 1;
-                }
-            }
-
-            let chunk = data.slice(offset, end);
-            const last = chunk.charCodeAt(chunk.length - 1);
-            if (last >= 0xd800 && last <= 0xdbff && end < data.length) {
-                end--;
-                chunk = data.slice(offset, end);
-            }
-
+        for(let offset = 0; offset < bytes.length; offset += chunkSize) {
+            const chunkStart = offset;
+            const chunkEnd = Math.min(offset + chunkSize, bytes.length);
+            const isLastChunk = chunkEnd === bytes.length;
+            const chunkBytes = bytes.slice(chunkStart, chunkEnd);
+            const chunk = decoder.decode(chunkBytes, { stream: !isLastChunk });
             const append = offset > 0;
             promise = promise.then(() => callFileWrite(path, chunk, append, mode));
-            offset = end;
         }
 
         return promise;
