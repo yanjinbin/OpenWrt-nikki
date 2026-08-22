@@ -151,6 +151,7 @@ make package/luci-app-nikki/compile
 
 - OpenWrt 24.10：生成 `.ipk`（opkg）
 - OpenWrt 25.12：生成 `.apk`（apk）
+- Athena / aarch64_cortex-a53 SNAPSHOT：生成 `.ipk`（opkg）
 
 每个任务完成后，安装包和对应的 feed 索引会作为 Actions artifact 提供下载。
 构建包含 `nikki`、`luci-app-nikki` 以及 `mihomo-alpha`、`mihomo-meta`。

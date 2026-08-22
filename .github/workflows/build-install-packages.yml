@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   build:
-    name: ${{ matrix.release }} ${{ matrix.package_format }}
+    name: ${{ matrix.architecture }} ${{ matrix.release }} ${{ matrix.package_format }}
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
@@ -27,11 +27,18 @@ jobs:
           # OpenWrt 24.10 and older use opkg and install .ipk files.
           - release: openwrt-24.10
             sdk_arch: aarch64_generic-openwrt-24.10
+            architecture: aarch64_generic
             package_format: ipk
           # OpenWrt 25.12 uses apk and installs .apk files.
           - release: openwrt-25.12
             sdk_arch: aarch64_generic-25.12.4
+            architecture: aarch64_generic
             package_format: apk
+          # Athena uses an ImmortalWrt SNAPSHOT with opkg and aarch64_cortex-a53.
+          - release: SNAPSHOT
+            sdk_arch: aarch64_cortex-a53-SNAPSHOT
+            architecture: aarch64_cortex-a53
+            package_format: ipk
 
     steps:
       - name: Checkout
@@ -57,11 +64,12 @@ jobs:
       - name: Verify package format and feed index
         env:
           RELEASE: ${{ matrix.release }}
+          ARCHITECTURE: ${{ matrix.architecture }}
           PACKAGE_FORMAT: ${{ matrix.package_format }}
         run: |
           set -euo pipefail
 
-          package_dir="bin/packages/aarch64_generic/nikki"
+          package_dir="bin/packages/${ARCHITECTURE}/nikki"
           test -d "$package_dir"
 
           package_count="$(find "$package_dir" -maxdepth 1 -type f -name "*.${PACKAGE_FORMAT}" | wc -l | tr -d ' ')"
@@ -82,7 +90,7 @@ jobs:
           {
             echo "commit=$GITHUB_SHA"
             echo "release=$RELEASE"
-            echo "architecture=aarch64_generic"
+            echo "architecture=$ARCHITECTURE"
             echo "package_format=$PACKAGE_FORMAT"
             echo "package_count=$package_count"
           } > package-output/build-info.txt
@@ -93,7 +101,7 @@ jobs:
       - name: Upload install packages
         uses: actions/upload-artifact@v7
         with:
-          name: nikki-aarch64_generic-${{ matrix.release }}-${{ matrix.package_format }}
+          name: nikki-${{ matrix.architecture }}-${{ matrix.release }}-${{ matrix.package_format }}
           path: package-output
           if-no-files-found: error
           retention-days: 14
