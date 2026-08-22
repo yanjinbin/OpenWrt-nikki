@@ -144,6 +144,17 @@ make package/luci-app-nikki/compile
 
 编译结果可以在 `bin/packages/your_architecture/nikki` 内找到。
 
+### GitHub Actions 构建安装包
+
+`.github/workflows/build-install-packages.yml` 会在 `main` 分支相关源码变更
+或手动运行时构建当前设备常用的 `aarch64_generic` 包：
+
+- OpenWrt 24.10：生成 `.ipk`（opkg）
+- OpenWrt 25.12：生成 `.apk`（apk）
+
+每个任务完成后，安装包和对应的 feed 索引会作为 Actions artifact 提供下载。
+构建包含 `nikki`、`luci-app-nikki` 以及 `mihomo-alpha`、`mihomo-meta`。
+
 ## 依赖
 
 - ca-bundle

@@ -1,0 +1,99 @@
+name: Build install packages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/build-install-packages.yml'
+      - 'nikki/**'
+      - 'mihomo-alpha/**'
+      - 'mihomo-meta/**'
+      - 'luci-app-nikki/**'
+      - 'feed.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.release }} ${{ matrix.package_format }}
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # OpenWrt 24.10 and older use opkg and install .ipk files.
+          - release: openwrt-24.10
+            sdk_arch: aarch64_generic-24.10
+            package_format: ipk
+          # OpenWrt 25.12 uses apk and installs .apk files.
+          - release: openwrt-25.12
+            sdk_arch: aarch64_generic-25.12.4
+            package_format: apk
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Build Nikki packages with the OpenWrt SDK
+        uses: openwrt/gh-action-sdk@v11
+        env:
+          ARCH: ${{ matrix.sdk_arch }}
+          FEEDNAME: nikki
+          PACKAGES: mihomo-alpha mihomo-meta nikki luci-app-nikki
+          INDEX: 1
+          # Optional repository signing keys. Empty secrets still produce
+          # downloadable packages; configured keys sign the generated feed
+          # when the matching public keys are distributed to the device.
+          KEY_BUILD: ${{ secrets.KEY_BUILD }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          NO_REFRESH_CHECK: true
+          V: s
+
+      - name: Verify package format and feed index
+        env:
+          RELEASE: ${{ matrix.release }}
+          PACKAGE_FORMAT: ${{ matrix.package_format }}
+        run: |
+          set -euo pipefail
+
+          package_dir="bin/packages/aarch64_generic/nikki"
+          test -d "$package_dir"
+
+          package_count="$(find "$package_dir" -maxdepth 1 -type f -name "*.${PACKAGE_FORMAT}" | wc -l | tr -d ' ')"
+          if [ "$package_count" -eq 0 ]; then
+            echo "No .${PACKAGE_FORMAT} packages were produced in $package_dir" >&2
+            find "$package_dir" -maxdepth 1 -type f -print >&2 || true
+            exit 1
+          fi
+
+          if [ "$PACKAGE_FORMAT" = ipk ]; then
+            test -f "$package_dir/Packages.gz"
+          else
+            test -f "$package_dir/packages.adb"
+          fi
+
+          mkdir -p package-output
+          cp -a "$package_dir"/. package-output/
+          {
+            echo "commit=$GITHUB_SHA"
+            echo "release=$RELEASE"
+            echo "architecture=aarch64_generic"
+            echo "package_format=$PACKAGE_FORMAT"
+            echo "package_count=$package_count"
+          } > package-output/build-info.txt
+
+          echo "Built $package_count .${PACKAGE_FORMAT} package(s):"
+          find package-output -maxdepth 1 -type f -name "*.${PACKAGE_FORMAT}" -print | sort
+
+      - name: Upload install packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: nikki-aarch64_generic-${{ matrix.release }}-${{ matrix.package_format }}
+          path: package-output
+          if-no-files-found: error
+          retention-days: 14
