@@ -26,7 +26,7 @@ jobs:
         include:
           # OpenWrt 24.10 and older use opkg and install .ipk files.
           - release: openwrt-24.10
-            sdk_arch: aarch64_generic-24.10
+            sdk_arch: aarch64_generic-openwrt-24.10
             package_format: ipk
           # OpenWrt 25.12 uses apk and installs .apk files.
           - release: openwrt-25.12
