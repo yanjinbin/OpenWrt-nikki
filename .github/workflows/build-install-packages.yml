@@ -34,9 +34,11 @@ jobs:
             sdk_arch: aarch64_generic-25.12.4
             architecture: aarch64_generic
             package_format: apk
-          # Athena uses an ImmortalWrt SNAPSHOT with opkg and aarch64_cortex-a53.
-          - release: SNAPSHOT
-            sdk_arch: aarch64_cortex-a53-SNAPSHOT
+          # Athena reports SNAPSHOT but currently uses opkg. Build its
+          # aarch64_cortex-a53 IPK against the 24.10 opkg SDK, not the newer
+          # SNAPSHOT APK SDK.
+          - release: athena-opkg
+            sdk_arch: aarch64_cortex-a53-openwrt-24.10
             architecture: aarch64_cortex-a53
             package_format: ipk
 
