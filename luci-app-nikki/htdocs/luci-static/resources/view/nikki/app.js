@@ -107,6 +107,14 @@ return view.extend({
             o.value('subscription:' + subscription['.name'], _('Subscription:') + subscription.name);
         };
 
+        for (const subscription of subscriptions) {
+            const section = subscription['.name'];
+            o = s.option(form.Value, '_subscription_interval_' + section, _('更新间隔（小时）'));
+            nikki.configureSubscriptionInterval(o, section);
+            o.depends('nikki.config.profile', 'subscription:' + section);
+            o.description = _('与“配置文件”页面共用当前订阅的更新间隔，默认 72 小时（3 天）。');
+        }
+
         o = s.option(form.Value, 'start_delay', _('Start Delay'));
         o.datatype = 'uinteger';
         o.placeholder = _('Start Immidiately');

@@ -230,9 +230,7 @@ return view.extend({
         o.editable = true;
 
         o = s.option(form.Value, 'update_interval', _('更新间隔（小时）'));
-        o.default = '72';
-        o.datatype = 'and(uinteger, range(1, 8760))';
-        o.rmempty = false;
+        nikki.configureSubscriptionInterval(o);
         o.editable = true;
         o.description = _('默认 72 小时（3 天）。按小时检查，失败保留现有订阅，等待下一个周期。');
 

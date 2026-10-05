@@ -99,6 +99,18 @@ return baseclass.extend({
     coreLogPath: coreLogPath,
     debugLogPath: debugLogPath,
 
+    configureSubscriptionInterval: function (option, section) {
+        option.default = '72';
+        option.datatype = 'and(uinteger, range(1, 8760))';
+        option.rmempty = false;
+        option.retain = true;
+        option.ucioption = 'update_interval';
+        if (section != null) {
+            option.ucisection = section;
+        }
+        return option;
+    },
+
     status: async function () {
         return (await callRCList('nikki'))?.nikki?.running;
     },
