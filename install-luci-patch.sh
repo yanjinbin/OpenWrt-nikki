@@ -5,7 +5,7 @@
 set -e
 
 RAW_BASE="${NIKKI_RAW_BASE:-https://github.com/yanjinbin/OpenWrt-nikki/raw/refs/heads/main}"
-GITHUB_PROXY="${GITHUB_PROXY:-https://gh-proxy.com/}"
+GITHUB_PROXY="${GITHUB_PROXY-https://gh-proxy.com/}"
 DESTDIR="${DESTDIR:-}"
 RESTART_SERVICES="${RESTART_SERVICES:-1}"
 CACHE_BUSTER="${NIKKI_CACHE_BUSTER:-$(date +%s)}"

@@ -6,7 +6,7 @@ set -e
 
 UPSTREAM_RAW_BASE="${NIKKI_UPSTREAM_RAW_BASE:-https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main}"
 PATCH_RAW_BASE="${NIKKI_PATCH_RAW_BASE:-https://github.com/yanjinbin/OpenWrt-nikki/raw/refs/heads/main}"
-GITHUB_PROXY="${GITHUB_PROXY:-https://gh-proxy.com/}"
+GITHUB_PROXY="${GITHUB_PROXY-https://gh-proxy.com/}"
 CACHE_BUSTER="${NIKKI_CACHE_BUSTER:-$(date +%s)}"
 
 raw_url() {
