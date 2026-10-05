@@ -10,6 +10,11 @@ DESTDIR="${DESTDIR:-}"
 RESTART_SERVICES="${RESTART_SERVICES:-1}"
 CACHE_BUSTER="${NIKKI_CACHE_BUSTER:-$(date +%s)}"
 
+if [ -z "$DESTDIR" ]; then
+	command -v flock >/dev/null || { echo "请先安装 flock 软件包"; exit 1; }
+	[ -f /usr/share/libubox/jshn.sh ] || { echo "请先安装 jshn 软件包"; exit 1; }
+fi
+
 raw_url() {
 	local url
 	if [ -n "$GITHUB_PROXY" ]; then
@@ -75,3 +80,11 @@ echo "清理 LuCI 缓存"
 rm -rf "${DESTDIR}"/tmp/luci-indexcache* "${DESTDIR}"/tmp/luci-modulecache*
 
 echo "安装完成"
+
+if [ -z "$DESTDIR" ] && /etc/init.d/nikki status >/dev/null 2>&1; then
+	if ! grep -q '#nikki subscription update' /etc/crontabs/root; then
+		echo '0 * * * * /etc/init.d/nikki update_subscriptions #nikki subscription update' >> /etc/crontabs/root
+		/etc/init.d/cron restart
+	fi
+	/etc/init.d/nikki update_subscriptions
+fi

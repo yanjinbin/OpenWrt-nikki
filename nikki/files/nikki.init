@@ -9,6 +9,7 @@ PROG="/usr/bin/mihomo"
 . "$IPKG_INSTROOT/etc/nikki/scripts/include.sh"
 
 extra_command 'update_subscription' 'Update subscription by section id'
+extra_command 'update_subscriptions' 'Update subscriptions whose hourly interval has elapsed'
 extra_command 'clear_logs' 'Clear logs if size exceeds the limit'
 
 boot_func() {
@@ -138,7 +139,7 @@ start_service() {
 		config_get subscription_prefer "$subscription_section" "prefer" "remote"
 		log "Profile" "Use subscription: $subscription_name."
 		local subscription_file; subscription_file="$SUBSCRIPTIONS_DIR/$subscription_section.yaml"
-		if [ "$subscription_prefer" = "remote" ] || [ ! -f "$subscription_file" ]; then
+		if { [ "$subscription_prefer" = "remote" ] && [ "$NIKKI_SKIP_SUBSCRIPTION_UPDATE" != 1 ]; } || [ ! -f "$subscription_file" ]; then
 			update_subscription "$subscription_section"
 		fi
 		if [ ! -f "$subscription_file" ]; then
@@ -293,6 +294,8 @@ start_service() {
 		echo "$log_scheduled_clear_cron /etc/init.d/nikki clear_logs #nikki log scheduled clear" >> "/etc/crontabs/root"
 		reload_cron=1
 	fi
+	echo "0 * * * * /etc/init.d/nikki update_subscriptions #nikki subscription update" >> "/etc/crontabs/root"
+	reload_cron=1
 	## reload cron if needed
 	if [ "$reload_cron" = 1 ]; then
 		/etc/init.d/cron restart
@@ -603,7 +606,88 @@ clear_logs() {
 	fi
 }
 
-update_subscription() {
+report_subscription_failure() (
+	local section="$1" reason="$2" curl_code="$3" http_status="$4"
+	local report_url report_token source name url host
+	config_get report_url "config" "subscription_report_url"
+	config_get report_token "config" "subscription_report_token"
+	[ -n "$report_url" ] || return 0
+	case "$report_url" in https://*) ;; *) return 0 ;; esac
+	config_get source "config" "subscription_source"
+	[ -n "$source" ] || source=$(uci -q get system.@system[0].hostname)
+	config_get name "$section" "name"
+	config_get url "$section" "url"
+	host=$(printf '%s' "$url" | sed -E 's|^[^:]+://||; s|[/?#].*$||; s|^.*@||')
+	. /usr/share/libubox/jshn.sh
+	json_init
+	json_add_string source "$source"
+	json_add_string subscription "$name"
+	json_add_string section "$section"
+	json_add_string host "$host"
+	json_add_string reason "$reason"
+	json_add_string trigger "${NIKKI_UPDATE_TRIGGER:-manual}"
+	json_add_string curl_code "$curl_code"
+	json_add_string http_status "$http_status"
+	json_add_string occurred_at "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+	if ! json_dump | curl -s -f --connect-timeout 3 --max-time 10 \
+		-H 'Content-Type: application/json' -H "Authorization: Bearer $report_token" \
+		--data-binary @- "$report_url" > /dev/null 2>&1; then
+		log "Profile" "Failure report could not be delivered; keep the current subscription."
+	fi
+	return 0
+)
+
+update_subscription_if_due() {
+	local section="$1" enabled hours last now profile
+	config_get_bool enabled "$section" "auto_update" 1
+	[ "$enabled" = 1 ] || return 0
+	config_get hours "$section" "update_interval" 72
+	case "$hours" in ''|*[!0-9]*|0*) return 0 ;; esac
+	[ "$hours" -le 8760 ] || return 0
+	config_get last "$section" "last_attempt" 0
+	case "$last" in ''|*[!0-9]*) last=0 ;; esac
+	now=$(date +%s)
+	# Start the first interval when scheduling is enabled, without an extra download.
+	if [ "$last" = 0 ] || [ "$last" -gt "$now" ]; then
+		uci_set "nikki" "$section" "last_attempt" "$now"
+		uci_commit "nikki"
+		return 0
+	fi
+	[ "$((now - last))" -ge "$((hours * 3600))" ] || return 0
+	if NIKKI_UPDATE_TRIGGER=scheduled update_subscription "$section"; then
+		config_get profile "config" "profile"
+		[ "$profile" != "subscription:$section" ] || subscription_reload=1
+	fi
+	return 0
+}
+
+update_subscriptions() (
+	prepare_files
+	exec 8> "$TEMP_DIR/subscriptions.lock"
+	flock -n 8 || return 0
+	config_load nikki
+	local enabled subscription_reload=0
+	config_get_bool enabled "config" "enabled" 0
+	[ "$enabled" = 1 ] || return 0
+	config_foreach update_subscription_if_due subscription
+	if [ "$subscription_reload" = 1 ]; then
+		NIKKI_SKIP_SUBSCRIPTION_UPDATE=1 /etc/init.d/nikki reload
+	fi
+	return 0
+)
+
+update_subscription() (
+	umask 077
+	prepare_files
+	# Serialize manual and scheduled writes to the same subscription.
+	local subscription_section; subscription_section="$1"
+	case "$subscription_section" in ''|*[!a-zA-Z0-9_]*) return 1 ;; esac
+	exec 9> "$TEMP_DIR/$subscription_section.lock"
+	flock -n 9 || return 1
+	update_subscription_locked "$subscription_section"
+)
+
+update_subscription_locked() {
 	local subscription_section; subscription_section="$1"
 	if [ -z "$subscription_section" ]; then
 		return
@@ -616,18 +700,10 @@ update_subscription() {
 	config_get subscription_info_url "$subscription_section" "info_url"
 	config_get subscription_url "$subscription_section" "url"
 	config_get subscription_user_agent "$subscription_section" "user_agent"
-	# reset subscription info
-	uci_remove "nikki" "$subscription_section" "expire" > /dev/null 2>&1
-	uci_remove "nikki" "$subscription_section" "upload" > /dev/null 2>&1
-	uci_remove "nikki" "$subscription_section" "download" > /dev/null 2>&1
-	uci_remove "nikki" "$subscription_section" "total" > /dev/null 2>&1
-	uci_remove "nikki" "$subscription_section" "used" > /dev/null 2>&1
-	uci_remove "nikki" "$subscription_section" "avaliable" > /dev/null 2>&1
-	uci_remove "nikki" "$subscription_section" "update" > /dev/null 2>&1
-	uci_remove "nikki" "$subscription_section" "success" > /dev/null 2>&1
 	# update subscription
 	log "Profile" "Update subscription: $subscription_name."
-	local success
+	local success reason curl_code http_status
+	uci_set "nikki" "$subscription_section" "last_attempt" "$(date +%s)"
 	local subscription_info_header_tmpfile; subscription_info_header_tmpfile="$TEMP_DIR/$subscription_section.info.header"
 	local subscription_header_tmpfile; subscription_header_tmpfile="$TEMP_DIR/$subscription_section.header"
 	local subscription_tmpfile; subscription_tmpfile="$TEMP_DIR/$subscription_section.yaml"
@@ -644,25 +720,49 @@ update_subscription() {
 	fi
 	# download subscription
 	log "Profile" "Download subscription."
-	if curl -s -f -m 120 --connect-timeout 15 --retry 3 -L -X GET -A "$subscription_user_agent" -D "$subscription_header_tmpfile" -o "$subscription_tmpfile" "$subscription_url" > /dev/null 2>&1; then
+	http_status=$(curl -s -f -m 120 --connect-timeout 15 --retry 3 -L -X GET -A "$subscription_user_agent" -D "$subscription_header_tmpfile" -o "$subscription_tmpfile" -w "%{http_code}" "$subscription_url" 2>/dev/null)
+	curl_code=$?
+	if [ "$curl_code" = 0 ]; then
 		log "Profile" "Subscription download successful."
 		if [ ! -f "$subscription_info_file" ] && grep -q -i "subscription-userinfo:" "$subscription_header_tmpfile"; then
 			subscription_info_file="$subscription_header_tmpfile"
 		fi
-		if yq -M -p yaml -o yaml -e 'has("proxies") or has("proxy-providers")' "$subscription_tmpfile" > /dev/null 2>&1; then
+		if yq -M -p yaml -o yaml -e 'has("proxies") or has("proxy-providers")' "$subscription_tmpfile" > /dev/null 2>&1 &&
+			"$PROG" -t -d "$RUN_DIR" -f "$subscription_tmpfile" > /dev/null 2>&1; then
 			log "Profile" "Subscription is valid."
 			success=1
 		else
 			log "Profile" "Subscription is not valid."
 			success=0
+			reason="invalid_profile"
 		fi
 	else
 		log "Profile" "Subscription download failed."
 		success=0
+		reason="download_failed"
+	fi
+	if [ "$success" = 1 ]; then
+		# Stage on the destination filesystem so a failed write keeps the old file.
+		if ! cp "$subscription_tmpfile" "$subscription_file.new" ||
+			! mv -f "$subscription_file.new" "$subscription_file"; then
+			rm -f "$subscription_file.new"
+			success=0
+			reason="save_failed"
+		fi
 	fi
 	# check if success
 	if [ "$success" = 1 ]; then
 		log "Profile" "Subscription update successful."
+		# reset subscription info
+		uci_remove "nikki" "$subscription_section" "expire" > /dev/null 2>&1
+		uci_remove "nikki" "$subscription_section" "upload" > /dev/null 2>&1
+		uci_remove "nikki" "$subscription_section" "download" > /dev/null 2>&1
+		uci_remove "nikki" "$subscription_section" "total" > /dev/null 2>&1
+		uci_remove "nikki" "$subscription_section" "used" > /dev/null 2>&1
+		uci_remove "nikki" "$subscription_section" "avaliable" > /dev/null 2>&1
+		uci_remove "nikki" "$subscription_section" "update" > /dev/null 2>&1
+		uci_remove "nikki" "$subscription_section" "success" > /dev/null 2>&1
+
 		if [ -f "$subscription_info_file" ]; then
 			local subscription_expire subscription_upload subscription_download subscription_total subscription_used subscription_avaliable
 			subscription_expire=$(grep -i "subscription-userinfo: " "$subscription_info_file" | grep -i -o -E "expire=[[:digit:]]+" | cut -d '=' -f 2)
@@ -700,15 +800,17 @@ update_subscription() {
 		# update subscription file
 		rm -f "$subscription_info_header_tmpfile"
 		rm -f "$subscription_header_tmpfile"
-		mv -f "$subscription_tmpfile" "$subscription_file"
+		rm -f "$subscription_tmpfile"
 	elif [ "$success" = 0 ]; then
 		log "Profile" "Subscription update failed."
 		# update subscription info
 		uci_set "nikki" "$subscription_section" "success" "0"
+		report_subscription_failure "$subscription_section" "$reason" "$curl_code" "$http_status"
 		# remove tmpfile
 		rm -f "$subscription_info_header_tmpfile"
 		rm -f "$subscription_header_tmpfile"
 		rm -f "$subscription_tmpfile"
 	fi
 	uci_commit "nikki"
+	[ "$success" = 1 ]
 }

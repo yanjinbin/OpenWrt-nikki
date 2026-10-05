@@ -201,6 +201,20 @@ return view.extend({
             ]);
         };
 
+        s = m.section(form.NamedSection, 'config', 'config', _('订阅失败上报'));
+
+        o = s.option(form.Value, 'subscription_source', _('设备来源'));
+        o.placeholder = _('默认使用路由器主机名');
+
+        o = s.option(form.Value, 'subscription_report_url', _('失败上报地址'));
+        o.description = _('HTTPS 接口；留空关闭上报。上报失败不影响现有订阅。');
+        o.validate = function (_, value) {
+            return !value || /^https:\/\/[^\s]+$/.test(value) || _('请输入 HTTPS 地址。');
+        };
+
+        o = s.option(form.Value, 'subscription_report_token', _('上报令牌'));
+        o.password = true;
+
         s = m.section(form.GridSection, 'subscription', _('Subscription'));
         s.addremove = true;
         s.anonymous = true;
@@ -209,6 +223,18 @@ return view.extend({
 
         o = s.option(form.Value, 'name', _('Subscription Name'));
         o.rmempty = false;
+
+        o = s.option(form.Flag, 'auto_update', _('定时更新'));
+        o.default = '1';
+        o.rmempty = false;
+        o.editable = true;
+
+        o = s.option(form.Value, 'update_interval', _('更新间隔（小时）'));
+        o.default = '72';
+        o.datatype = 'and(uinteger, range(1, 8760))';
+        o.rmempty = false;
+        o.editable = true;
+        o.description = _('默认 72 小时（3 天）。按小时检查，失败保留现有订阅，等待下一个周期。');
 
         o = s.option(form.Value, 'used', _('Used'));
         o.modalonly = false;
