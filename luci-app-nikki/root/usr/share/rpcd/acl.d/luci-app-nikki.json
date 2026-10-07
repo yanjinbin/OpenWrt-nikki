@@ -2,7 +2,7 @@
     "luci-app-nikki": {
         "description": "Grant access to nikki procedures",
         "read": {
-            "uci": [ "nikki" ],
+            "uci": [ "nikki", "nikki_schedule" ],
             "ubus": {
                 "rc": [ "*" ],
                 "luci.nikki": [ "*" ]
@@ -21,7 +21,7 @@
             }
         },
         "write": {
-            "uci": [ "nikki" ],
+            "uci": [ "nikki", "nikki_schedule" ],
             "file": {
                 "/etc/nikki/profiles/*.yaml": ["write"],
                 "/etc/nikki/profiles/*.yml": ["write"],

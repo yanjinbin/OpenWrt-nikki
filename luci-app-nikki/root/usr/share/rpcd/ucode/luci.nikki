@@ -4,8 +4,32 @@
 
 import { access, popen, writefile } from 'fs';
 import { get_users, get_groups, get_cgroups, load_profile } from '/etc/nikki/ucode/include.uc';
+import { get_groups as get_proxy_groups, read_schedule_status } from '/etc/nikki/ucode/proxy_schedule.uc';
 
 const methods = {
+	proxy_schedule_status: {
+		call: function() {
+			const status = read_schedule_status();
+			const now = localtime();
+			status.time = sprintf('%04d-%02d-%02d %02d:%02d:%02d', now.year, now.mon, now.mday, now.hour, now.min, now.sec);
+			status.running = access('/var/run/nikki/started.flag');
+			status.stale = !status.checked_at || time() - status.checked_at > (status.interval || 1) * 60 + 90;
+			delete status.signature;
+			return status;
+		}
+	},
+	proxy_groups: {
+		call: function() {
+			const now = localtime();
+			const result = { groups: {}, time: sprintf('%02d:%02d', now.hour, now.min) };
+			try {
+				result.groups = get_proxy_groups(load_profile());
+			} catch (e) {
+				result.error = 'Cannot read proxy groups. Check that Nikki and its API are running.';
+			}
+			return result;
+		}
+	},
 	version: {
 		call: function() {
 			let process;

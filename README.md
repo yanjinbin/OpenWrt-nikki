@@ -9,6 +9,7 @@
 
 ## 功能
 
+- 新增“代理组定时切换”页面：选择代理组、每日时段、时段内和时段外目标，支持多条规则及跨午夜时段。检查间隔可选 1、5、10、15、30、60 分钟。
 - 每条订阅可启用定时更新，间隔为 1–8760 小时，默认 72 小时（3 天）。每小时检查一次；首次启用从当前时间开始计时。
 - “插件配置”页面在配置文件选择器下方显示当前订阅的更新间隔，与“配置文件”页面读写同一项订阅设置；选择本地文件时隐藏。
 - 更新失败保留旧配置、上次成功时间和流量信息，等待下一个周期。下载通过 YAML 和 Mihomo 检查后才替换；仅当前使用的订阅更新成功后重载 Nikki。
@@ -23,6 +24,49 @@
   - 重载 Nikki
   - 检查 Nikki 运行状态
   - 显示成功或失败通知
+
+## 代理组定时切换
+
+进入 **服务 → Nikki → 代理组定时切换**。页面通过当前运行配置中的 Mihomo API 读取手动选择（Selector）代理组及其可选项。组名与时段内、外目标均使用下拉选择，启停用复选框；无需手工输入名称、API 地址或密钥。节点名、组名中的中文、空格和 emoji 会原样保存。
+
+例如，选择“油管”组，开始时间 `18:00`、结束时间 `22:00`，时段内选择 `🇺🇸-ai专用-dmit`，时段外选择 `高质量节点-select`，启用后保存并应用。请从实际 API 返回的下拉选项选择完整名称。
+
+- 检查间隔是所有规则共用的设置，默认 1 分钟。5 分钟表示每小时的 `00、05、10…55` 分检查，60 分钟表示每小时整点检查；切换最多延迟一个检查周期。
+- 时段包含开始时间、不包含结束时间。例如 `18:00–22:00` 在 `22:00` 起恢复时段外选择；`22:00–06:00` 表示跨午夜时段。使用路由器本地时间，开始与结束时间不能相同。
+- OpenWrt cron 启动一次性进程。进程获取文件锁后读取规则和当前选择，仅不一致时通过 [Mihomo API](https://wiki.metacubex.one/api/) 切换，不依赖流量触发，不重启 Nikki，也不主动关闭已有连接。调度保存在独立的 `nikki_schedule` 配置中，仅修改调度时“保存并应用”不会触发核心重载。若同时有其他未应用的 LuCI 改动，标准“保存并应用”仍会一起应用。旧连接可能继续使用原出口，直到应用新建连接。
+- 每个 API 请求最多 5 秒。上一轮未结束时跳过本轮；执行结束或进程退出后释放内存、文件句柄和锁。没有额外常驻服务，也不需要 Mac 在线。
+- Nikki 启动后会检查一次；若 API 尚未就绪，下一分钟重试；修改规则或间隔后也在下一分钟检查。API 失败、组名变更、选项消失时保留当前选择；页面显示错误，相同错误不重复刷日志。
+- 同一代理组只能启用一条规则；手工配置的重复规则全部跳过。规则启用后，手动选择会在下一轮被校正。停用或删除规则后保留最后一次选择。
+- 其他引用该组的流量也会受到影响。例如“节点选择”引用“油管”时，切换可能影响 YouTube 以外的流量。
+
+UCI 示例（名称须替换为运行时的完整名称）：
+
+```uci
+config proxy_schedule
+    option enabled '1'
+    option group '油管'
+    option start_time '18:00'
+    option end_time '22:00'
+    option inside '🇺🇸-ai专用-dmit'
+    option outside '高质量节点-select'
+```
+
+规则和全局间隔都在 `/etc/config/nikki_schedule`，间隔字段为 `nikki_schedule.config.proxy_schedule_interval`。安装包不带启用规则，新增规则默认停用。未创建或启用规则时不会执行 API 请求。
+
+状态保存在 RAM 的 `/var/run/nikki/proxy_schedule.json`，页面每 15 秒读取状态。调度只记录切换和变化的错误；详细实现与排查见 [调度说明](docs/proxy-schedule.md)。
+
+### 本地验证
+
+需要 Node.js、Python 3，以及带 `fs` 模块的 ucode：
+
+```sh
+node --test tests/*.test.mjs
+python3 -m unittest discover -s tests
+sh -n nikki/files/nikki.init
+sh -n install-luci-patch.sh
+```
+
+非系统安装的 ucode 可通过 `UCODE` 指定可执行文件、`UCODE_LIB` 指定模块目录。测试使用本地 HTTP 服务，不访问路由器。
 
 ## 效果截图
 
@@ -91,7 +135,13 @@ wget -O - "https://gh-proxy.com/https://github.com/yanjinbin/OpenWrt-nikki/raw/r
 /www/luci-static/resources/tools/nikki.js
 /www/luci-static/resources/view/nikki/app.js
 /www/luci-static/resources/view/nikki/profile.js
+/www/luci-static/resources/view/nikki/schedule.js
+/usr/share/luci/menu.d/luci-app-nikki.json
 /usr/share/rpcd/ucode/luci.nikki
+/usr/share/rpcd/acl.d/luci-app-nikki.json
+/etc/config/nikki_schedule
+/etc/nikki/ucode/proxy_schedule.uc
+/etc/nikki/ucode/schedule.uc
 /etc/init.d/nikki
 ```
 
@@ -122,13 +172,13 @@ grep "clear_connections_after_reload" /etc/init.d/nikki
 
 ## 卸载 / 回滚
 
-重新安装原版 `luci-app-nikki` 即可回滚本补丁。需要完整卸载 Nikki 时，请使用原版 OpenWrt-nikki 的卸载方式。
+先停用定时规则，再重新安装原版 `nikki` 和 `luci-app-nikki`，恢复服务脚本与界面。原版包不会自动删除补丁新增的文件。完整卸载 Nikki 请使用原版 OpenWrt-nikki 的卸载方式。
 
 opkg 系统：
 
 ```shell
 opkg update
-opkg install --force-reinstall luci-app-nikki
+opkg install --force-reinstall nikki luci-app-nikki
 /etc/init.d/rpcd restart
 /etc/init.d/uhttpd restart
 rm -rf /tmp/luci-indexcache* /tmp/luci-modulecache*
@@ -138,7 +188,7 @@ apk 系统：
 
 ```shell
 apk update
-apk fix luci-app-nikki
+apk fix nikki luci-app-nikki
 /etc/init.d/rpcd restart
 /etc/init.d/uhttpd restart
 rm -rf /tmp/luci-indexcache* /tmp/luci-modulecache*
@@ -147,6 +197,7 @@ rm -rf /tmp/luci-indexcache* /tmp/luci-modulecache*
 ## 注意事项
 
 - 该补丁会修改 LuCI/RPC 文件和 `/etc/init.d/nikki` 服务脚本，不替换 `mihomo` 核心包。
+- 补丁安装会刷新运行中的 cron 调度，无需重启 Mihomo。包构建包含简体中文翻译；仅覆盖源码的补丁安装在旧翻译包上可能显示英文标签。
 - 如果后续升级原版 `luci-app-nikki`，本补丁可能会被覆盖，需要重新执行安装命令。
 - 如果 `gh-proxy.com` 返回 429 或不可用，使用上面的“直连安装”命令。
 

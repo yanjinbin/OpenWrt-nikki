@@ -41,6 +41,14 @@
             "path": "nikki/proxy"
         }
     },
+    "admin/services/nikki/schedule": {
+        "title": "Proxy Group Schedule",
+        "order": 45,
+        "action": {
+            "type": "view",
+            "path": "nikki/schedule"
+        }
+    },
     "admin/services/nikki/editor": {
         "title": "Editor",
         "order": 50,

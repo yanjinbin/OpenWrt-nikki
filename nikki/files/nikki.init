@@ -11,6 +11,7 @@ PROG="/usr/bin/mihomo"
 extra_command 'update_subscription' 'Update subscription by section id'
 extra_command 'update_subscriptions' 'Update subscriptions whose hourly interval has elapsed'
 extra_command 'clear_logs' 'Clear logs if size exceeds the limit'
+extra_command 'schedule_proxies' 'Apply proxy group schedules for the current time'
 
 boot_func() {
 	# prepare files
@@ -295,6 +296,9 @@ start_service() {
 		reload_cron=1
 	fi
 	echo "0 * * * * /etc/init.d/nikki update_subscriptions #nikki subscription update" >> "/etc/crontabs/root"
+	local schedule_cron
+	schedule_cron=$(proxy_schedule_cron)
+	echo "$schedule_cron /etc/init.d/nikki schedule_proxies #nikki proxy schedule" >> "/etc/crontabs/root"
 	reload_cron=1
 	## reload cron if needed
 	if [ "$reload_cron" = 1 ]; then
@@ -309,6 +313,8 @@ service_started() {
 	if [ ! -f "$STARTED_FLAG_PATH" ]; then
 		return
 	fi
+	# The next cron tick retries if the core API is not ready yet.
+	schedule_proxies --force >/dev/null 2>&1 &
 	# load config
 	config_load nikki
 	# check if proxy enabled
@@ -514,6 +520,13 @@ service_triggers() {
 }
 
 cleanup() {
+	# Prevent new workers, then wait for the current request before clearing status.
+	rm -f "$STARTED_FLAG_PATH"
+	(
+		exec 7> "$TEMP_DIR/proxy-schedule.lock"
+		flock 7
+		rm -f "$TEMP_DIR/proxy_schedule.json" "$TEMP_DIR/proxy_schedule.json.new"
+	)
 	# load config
 	config_load nikki
 	# get config
@@ -554,8 +567,6 @@ cleanup() {
 	for handle in $handles; do
 		nft delete rule inet fw4 forward handle "$handle"
 	done
-	# delete started flag
-	rm "$STARTED_FLAG_PATH" > /dev/null 2>&1
 	# revert fix compatible with dockerd
 	## kmod-br-netfilter
 	if rm "$BRIDGE_NF_CALL_IPTABLES_FLAG_PATH" > /dev/null 2>&1; then
@@ -605,6 +616,21 @@ clear_logs() {
 		log "Log" "Core log is cleared due to scheduled clear and exceeding size limits."
 	fi
 }
+
+proxy_schedule_cron() {
+	# The worker reads the interval so saving schedules never reloads the core.
+	echo '* * * * *'
+}
+
+schedule_proxies() (
+	umask 077
+	[ -f "$STARTED_FLAG_PATH" ] || return 0
+	# A process owns the lock; exit and crashes release it automatically.
+	exec 7> "$TEMP_DIR/proxy-schedule.lock"
+	flock -n 7 || return 0
+	[ -f "$STARTED_FLAG_PATH" ] || return 0
+	ucode -S "$UCODE_DIR/schedule.uc" "$@"
+)
 
 report_subscription_failure() (
 	local section="$1" reason="$2" curl_code="$3" http_status="$4"

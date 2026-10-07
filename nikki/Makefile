@@ -14,11 +14,12 @@ define Package/nikki
   CATEGORY:=Network
   TITLE:=Transparent Proxy with Mihomo on OpenWrt.
   URL:=https://github.com/nikkinikki-org
-  DEPENDS:=+ca-bundle +curl +yq +flock +jshn firewall4 +ip-full +kmod-inet-diag +kmod-nft-socket +kmod-nft-tproxy +kmod-tun +kmod-dummy
+  DEPENDS:=+ca-bundle +curl +yq +flock +jshn +ucode +ucode-mod-fs +ucode-mod-uci firewall4 +ip-full +kmod-inet-diag +kmod-nft-socket +kmod-nft-tproxy +kmod-tun +kmod-dummy
 endef
 
 define Package/nikki/conffiles
 /etc/config/nikki
+/etc/config/nikki_schedule
 /etc/nikki/mixin.yaml
 endef
 
@@ -39,6 +40,8 @@ define Package/nikki/install
 	$(INSTALL_BIN) $(CURDIR)/files/ucode/include.uc $(1)/etc/nikki/ucode/include.uc
 	$(INSTALL_BIN) $(CURDIR)/files/ucode/mixin.uc $(1)/etc/nikki/ucode/mixin.uc
 	$(INSTALL_BIN) $(CURDIR)/files/ucode/hijack.ut $(1)/etc/nikki/ucode/hijack.ut
+	$(INSTALL_BIN) $(CURDIR)/files/ucode/proxy_schedule.uc $(1)/etc/nikki/ucode/proxy_schedule.uc
+	$(INSTALL_BIN) $(CURDIR)/files/ucode/schedule.uc $(1)/etc/nikki/ucode/schedule.uc
 
 	$(INSTALL_BIN) $(CURDIR)/files/scripts/include.sh $(1)/etc/nikki/scripts/include.sh
 	$(INSTALL_BIN) $(CURDIR)/files/scripts/firewall_include.sh $(1)/etc/nikki/scripts/firewall_include.sh
@@ -49,6 +52,7 @@ define Package/nikki/install
 
 	$(INSTALL_DIR) $(1)/etc/config
 	$(INSTALL_CONF) $(CURDIR)/files/nikki.conf $(1)/etc/config/nikki
+	$(INSTALL_CONF) $(CURDIR)/files/nikki_schedule.conf $(1)/etc/config/nikki_schedule
 
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) $(CURDIR)/files/nikki.init $(1)/etc/init.d/nikki

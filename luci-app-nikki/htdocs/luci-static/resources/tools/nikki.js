@@ -65,6 +65,14 @@ const callNikkiGetIdentifiers = rpc.declare({
     expect: { '': {} }
 });
 
+const callNikkiProxyScheduleStatus = rpc.declare({ object: 'luci.nikki', method: 'proxy_schedule_status', expect: { '': {} } });
+
+const callNikkiProxyGroups = rpc.declare({
+    object: 'luci.nikki',
+    method: 'proxy_groups',
+    expect: { '': {} }
+});
+
 const callNikkiDebug = rpc.declare({
     object: 'luci.nikki',
     method: 'debug',
@@ -217,6 +225,14 @@ return baseclass.extend({
 
     getIdentifiers: function () {
         return callNikkiGetIdentifiers();
+    },
+
+    getProxyScheduleStatus: function () {
+        return callNikkiProxyScheduleStatus();
+    },
+
+    getProxyGroups: function () {
+        return callNikkiProxyGroups();
     },
 
     listProfiles: function () {

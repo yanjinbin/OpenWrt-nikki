@@ -1143,3 +1143,111 @@ msgstr ""
 
 msgid "Profile selected and reload command completed, but Nikki is not running."
 msgstr ""
+
+msgid "Proxy Group Schedule"
+msgstr ""
+
+msgid "Check Interval (minutes)"
+msgstr ""
+
+msgid "Checks run at clock-aligned intervals. A switch can be delayed by up to one interval. Nikki also checks after startup."
+msgstr ""
+
+msgid "Use router local time. The start time is inclusive and the end time is exclusive. Overnight periods are supported."
+msgstr ""
+
+msgid "Router Local Time"
+msgstr ""
+
+msgid "Unavailable"
+msgstr ""
+
+msgid "Mihomo API"
+msgstr ""
+
+msgid "Cannot read proxy groups. Check that Nikki and its API are running. Saved names are preserved; reload this page to fetch the choices."
+msgstr ""
+
+msgid "Schedules"
+msgstr ""
+
+msgid "Edit Schedule"
+msgstr ""
+
+msgid "Enabled schedules override manual selections at the next check. Existing connections stay open. Other traffic using the same group is also affected."
+msgstr ""
+
+msgid "Proxy Group"
+msgstr ""
+
+msgid "Only one enabled schedule is allowed per group."
+msgstr ""
+
+msgid "Select a running Selector group."
+msgstr ""
+
+msgid "Start Time"
+msgstr ""
+
+msgid "End Time"
+msgstr ""
+
+msgid "Use HH:MM in 24-hour format."
+msgstr ""
+
+msgid "Start and end times must differ."
+msgstr ""
+
+msgid "During Period"
+msgstr ""
+
+msgid "Outside Period"
+msgstr ""
+
+msgid "-- Please choose --"
+msgstr ""
+
+msgid "Select an option from this proxy group."
+msgstr ""
+
+msgid "Last Check"
+msgstr ""
+
+msgid "Waiting for check"
+msgstr ""
+
+msgid "Nikki is stopped"
+msgstr ""
+
+msgid "Switched to"
+msgstr ""
+
+msgid "Selection matches"
+msgstr ""
+
+msgid "Schedule Status"
+msgstr ""
+
+msgid "Status unavailable"
+msgstr ""
+
+msgid "Mihomo API is not configured."
+msgstr ""
+
+msgid "Mihomo API request failed."
+msgstr ""
+
+msgid "Mihomo API returned no proxy groups."
+msgstr ""
+
+msgid "Set a group, two selections and distinct HH:MM times."
+msgstr ""
+
+msgid "The proxy group is missing or is not a Selector."
+msgstr ""
+
+msgid "A scheduled selection is missing from the group."
+msgstr ""
+
+msgid "Cannot read the running Mihomo profile."
+msgstr ""

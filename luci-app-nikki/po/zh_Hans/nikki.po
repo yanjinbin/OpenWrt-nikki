@@ -1150,3 +1150,111 @@ msgstr "启用配置文件失败："
 
 msgid "Profile selected and reload command completed, but Nikki is not running."
 msgstr "配置文件已选中，重载命令已完成，但 Nikki 未运行。"
+
+msgid "Proxy Group Schedule"
+msgstr "代理组定时切换"
+
+msgid "Check Interval (minutes)"
+msgstr "检查间隔（分钟）"
+
+msgid "Checks run at clock-aligned intervals. A switch can be delayed by up to one interval. Nikki also checks after startup."
+msgstr "按整点对齐的间隔检查，切换最多延迟一个检查周期。Nikki 启动后也会检查。"
+
+msgid "Use router local time. The start time is inclusive and the end time is exclusive. Overnight periods are supported."
+msgstr "使用路由器本地时间，包含开始时间、不包含结束时间，支持跨午夜时段。"
+
+msgid "Router Local Time"
+msgstr "路由器本地时间"
+
+msgid "Unavailable"
+msgstr "不可用"
+
+msgid "Mihomo API"
+msgstr "Mihomo API"
+
+msgid "Cannot read proxy groups. Check that Nikki and its API are running. Saved names are preserved; reload this page to fetch the choices."
+msgstr "无法读取代理组，请检查 Nikki 及其 API 是否运行。已保存的名称会保留，恢复后刷新页面以读取可选项。"
+
+msgid "Schedules"
+msgstr "定时规则"
+
+msgid "Edit Schedule"
+msgstr "编辑定时规则"
+
+msgid "Enabled schedules override manual selections at the next check. Existing connections stay open. Other traffic using the same group is also affected."
+msgstr "规则启用时，下次检查会覆盖手动选择。已有连接保持不变；使用同一代理组的其他流量也会受影响。"
+
+msgid "Proxy Group"
+msgstr "代理组"
+
+msgid "Only one enabled schedule is allowed per group."
+msgstr "同一代理组只能启用一条定时规则。"
+
+msgid "Select a running Selector group."
+msgstr "请选择正在运行的手动选择（Selector）代理组。"
+
+msgid "Start Time"
+msgstr "开始时间"
+
+msgid "End Time"
+msgstr "结束时间"
+
+msgid "Use HH:MM in 24-hour format."
+msgstr "请使用 24 小时制 HH:MM 格式。"
+
+msgid "Start and end times must differ."
+msgstr "开始和结束时间不能相同。"
+
+msgid "During Period"
+msgstr "时段内选择"
+
+msgid "Outside Period"
+msgstr "时段外选择"
+
+msgid "-- Please choose --"
+msgstr "-- 请选择 --"
+
+msgid "Select an option from this proxy group."
+msgstr "请选择该代理组中的可选项。"
+
+msgid "Last Check"
+msgstr "上次检查"
+
+msgid "Waiting for check"
+msgstr "等待检查"
+
+msgid "Nikki is stopped"
+msgstr "Nikki 未运行"
+
+msgid "Switched to"
+msgstr "已切换至"
+
+msgid "Selection matches"
+msgstr "选择已匹配"
+
+msgid "Schedule Status"
+msgstr "调度状态"
+
+msgid "Status unavailable"
+msgstr "无法读取状态"
+
+msgid "Mihomo API is not configured."
+msgstr "尚未配置 Mihomo API。"
+
+msgid "Mihomo API request failed."
+msgstr "Mihomo API 请求失败。"
+
+msgid "Mihomo API returned no proxy groups."
+msgstr "Mihomo API 未返回代理组。"
+
+msgid "Set a group, two selections and distinct HH:MM times."
+msgstr "请设置代理组、两个目标和不同的 HH:MM 起止时间。"
+
+msgid "The proxy group is missing or is not a Selector."
+msgstr "代理组不存在或不是 Selector 类型。"
+
+msgid "A scheduled selection is missing from the group."
+msgstr "代理组中不存在配置的切换目标。"
+
+msgid "Cannot read the running Mihomo profile."
+msgstr "无法读取正在运行的 Mihomo 配置。"

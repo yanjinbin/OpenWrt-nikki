@@ -11,6 +11,7 @@ RESTART_SERVICES="${RESTART_SERVICES:-1}"
 CACHE_BUSTER="${NIKKI_CACHE_BUSTER:-$(date +%s)}"
 
 if [ -z "$DESTDIR" ]; then
+	ucode -e 'import { cursor } from "uci"; import { mkstemp } from "fs";' >/dev/null 2>&1 || { echo "请先安装 ucode、ucode-mod-fs 和 ucode-mod-uci 软件包"; exit 1; }
 	command -v flock >/dev/null || { echo "请先安装 flock 软件包"; exit 1; }
 	[ -f /usr/share/libubox/jshn.sh ] || { echo "请先安装 jshn 软件包"; exit 1; }
 fi
@@ -53,6 +54,25 @@ download "luci-app-nikki/htdocs/luci-static/resources/view/nikki/app.js" \
 download "luci-app-nikki/htdocs/luci-static/resources/view/nikki/profile.js" \
 	"/www/luci-static/resources/view/nikki/profile.js"
 
+download "luci-app-nikki/htdocs/luci-static/resources/view/nikki/schedule.js" \
+	"/www/luci-static/resources/view/nikki/schedule.js"
+
+download "luci-app-nikki/root/usr/share/luci/menu.d/luci-app-nikki.json" \
+	"/usr/share/luci/menu.d/luci-app-nikki.json"
+
+download "luci-app-nikki/root/usr/share/rpcd/acl.d/luci-app-nikki.json" \
+	"/usr/share/rpcd/acl.d/luci-app-nikki.json"
+
+if [ ! -f "${DESTDIR}/etc/config/nikki_schedule" ]; then
+	download "nikki/files/nikki_schedule.conf" "/etc/config/nikki_schedule" 0600
+fi
+
+download "nikki/files/ucode/proxy_schedule.uc" \
+	"/etc/nikki/ucode/proxy_schedule.uc" 0755
+
+download "nikki/files/ucode/schedule.uc" \
+	"/etc/nikki/ucode/schedule.uc" 0755
+
 download "luci-app-nikki/root/usr/share/rpcd/ucode/luci.nikki" \
 	"/usr/share/rpcd/ucode/luci.nikki"
 
@@ -87,4 +107,10 @@ if [ -z "$DESTDIR" ] && /etc/init.d/nikki status >/dev/null 2>&1; then
 		/etc/init.d/cron restart
 	fi
 	/etc/init.d/nikki update_subscriptions
+	# 刷新调度任务，无需重启 Mihomo；间隔与服务脚本保持一致。
+	schedule_cron='* * * * *'
+	sed -i '/#nikki proxy schedule$/d' /etc/crontabs/root
+	echo "$schedule_cron /etc/init.d/nikki schedule_proxies #nikki proxy schedule" >> /etc/crontabs/root
+	/etc/init.d/cron restart
+	/etc/init.d/nikki schedule_proxies --force
 fi
