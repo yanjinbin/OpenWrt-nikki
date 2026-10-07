@@ -1,5 +1,6 @@
 'use strict';
 'require baseclass';
+'require form';
 'require uci';
 'require fs';
 'require rpc';
@@ -107,16 +108,47 @@ return baseclass.extend({
     coreLogPath: coreLogPath,
     debugLogPath: debugLogPath,
 
-    configureSubscriptionInterval: function (option, section) {
-        option.default = '72';
-        option.datatype = 'and(uinteger, range(1, 8760))';
-        option.rmempty = false;
-        option.retain = true;
-        option.ucioption = 'update_interval';
-        if (section != null) {
-            option.ucisection = section;
+    addSubscriptionSchedule: function (section, subscription) {
+        function add(type, key, label) {
+            const name = subscription == null ? key : '_' + key + '_' + subscription;
+            const option = section.option(type, name, label);
+            option.rmempty = false;
+            option.retain = true;
+            option.editable = true;
+            option.ucioption = key;
+            if (subscription != null) {
+                option.ucisection = subscription;
+                option.depends('nikki.config.profile', 'subscription:' + subscription);
+            }
+            return option;
         }
-        return option;
+        const enabled = add(form.Flag, 'auto_update', _('定时更新'));
+        enabled.default = '1';
+
+        const days = add(form.MultiValue, 'update_weekdays', _('更新星期'));
+        days.default = ['0'];
+        days.widget = 'checkbox';
+        for (const [day, label] of [['1', _('周一')], ['2', _('周二')], ['3', _('周三')],
+            ['4', _('周四')], ['5', _('周五')], ['6', _('周六')], ['0', _('周日')]])
+            days.value(day, label);
+        days.validate = function (id, value) {
+            const selected = Array.isArray(value) ? value : String(value || '').split(/\s+/);
+            return selected.length > 0 && selected.every(day => /^[0-6]$/.test(day)) || _('请选择至少一个星期。');
+        };
+
+        const time = add(form.Value, 'update_time', _('更新时间'));
+        time.default = '04:00';
+        time.description = _('按路由器本地时间执行，默认每周日凌晨 04:00。错过时点不补跑，失败等待下个选定时点。');
+        time.renderWidget = function () {
+            const node = form.Value.prototype.renderWidget.apply(this, arguments);
+            const input = node.querySelector('input');
+            input.type = 'time';
+            input.step = '60';
+            return node;
+        };
+        time.validate = function (id, value) {
+            return value?.length === 5 && /^([01]\d|2[0-3]):[0-5]\d$/.test(value) || _('请输入 24 小时制时间 HH:MM。');
+        };
     },
 
     status: async function () {

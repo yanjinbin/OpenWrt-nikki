@@ -103,6 +103,7 @@ class ScheduleLifecycleTest(unittest.TestCase):
                 text = cron.read_text()
                 self.assertEqual(text.count('#nikki proxy schedule'), 1)
                 self.assertEqual(text.count('#nikki subscription update'), 1)
+                self.assertIn('* * * * * /etc/init.d/nikki update_subscriptions #nikki subscription update', text)
                 self.assertIn('echo unrelated', text)
                 self.assertTrue(flag.exists())
                 run(cleanup_cron)

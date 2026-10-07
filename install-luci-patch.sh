@@ -79,13 +79,17 @@ download "luci-app-nikki/root/usr/share/rpcd/ucode/luci.nikki" \
 download "nikki/files/nikki.init" \
 	"/etc/init.d/nikki" 0755
 
-echo "写入重载后清除旧连接默认开关"
-if [ -z "$(uci -q get nikki.procd)" ]; then
-	uci set nikki.procd='procd'
-fi
-if [ -z "$(uci -q get nikki.procd.clear_connections_on_reload)" ]; then
-	uci set nikki.procd.clear_connections_on_reload='1'
-	uci commit nikki
+if [ -z "$DESTDIR" ]; then
+	echo "写入重载后清除旧连接默认开关"
+	if [ -z "$(uci -q get nikki.procd)" ]; then
+		uci set nikki.procd='procd'
+	fi
+	if [ -z "$(uci -q get nikki.procd.clear_connections_on_reload)" ]; then
+		uci set nikki.procd.clear_connections_on_reload='1'
+		uci commit nikki
+	fi
+	echo "迁移订阅为按星期和时间更新"
+	/etc/init.d/nikki migrate_subscription_schedules
 fi
 
 if [ "$RESTART_SERVICES" = "1" ]; then
@@ -102,11 +106,9 @@ rm -rf "${DESTDIR}"/tmp/luci-indexcache* "${DESTDIR}"/tmp/luci-modulecache*
 echo "安装完成"
 
 if [ -z "$DESTDIR" ] && /etc/init.d/nikki status >/dev/null 2>&1; then
-	if ! grep -q '#nikki subscription update' /etc/crontabs/root; then
-		echo '0 * * * * /etc/init.d/nikki update_subscriptions #nikki subscription update' >> /etc/crontabs/root
-		/etc/init.d/cron restart
-	fi
-	/etc/init.d/nikki update_subscriptions
+	# 只刷新定时任务，安装时不立即下载订阅或重载内核。
+	sed -i '/#nikki subscription update$/d' /etc/crontabs/root
+	echo '* * * * * /etc/init.d/nikki update_subscriptions #nikki subscription update' >> /etc/crontabs/root
 	# 刷新调度任务，无需重启 Mihomo；间隔与服务脚本保持一致。
 	schedule_cron='* * * * *'
 	sed -i '/#nikki proxy schedule$/d' /etc/crontabs/root

@@ -224,15 +224,7 @@ return view.extend({
         o = s.option(form.Value, 'name', _('Subscription Name'));
         o.rmempty = false;
 
-        o = s.option(form.Flag, 'auto_update', _('定时更新'));
-        o.default = '1';
-        o.rmempty = false;
-        o.editable = true;
-
-        o = s.option(form.Value, 'update_interval', _('更新间隔（小时）'));
-        nikki.configureSubscriptionInterval(o);
-        o.editable = true;
-        o.description = _('默认 72 小时（3 天）。按小时检查，失败保留现有订阅，等待下一个周期。');
+        nikki.addSubscriptionSchedule(s);
 
         o = s.option(form.Value, 'used', _('Used'));
         o.modalonly = false;
@@ -249,7 +241,7 @@ return view.extend({
         o.optional = true;
         o.readonly = true;
 
-        o = s.option(form.Value, 'update', _('Update At'));
+        o = s.option(form.Value, 'update', _('上次成功更新'));
         o.modalonly = false;
         o.optional = true;
         o.readonly = true;

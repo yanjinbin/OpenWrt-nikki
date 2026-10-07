@@ -236,5 +236,10 @@ procd_clear_connections_on_reload=$(uci -q get nikki.procd.clear_connections_on_
 # commit
 uci commit nikki
 
+# Migrate legacy subscription intervals without reloading the core.
+if [ -z "$IPKG_INSTROOT" ]; then
+	/etc/init.d/nikki migrate_subscription_schedules
+fi
+
 # exit with 0
 exit 0
