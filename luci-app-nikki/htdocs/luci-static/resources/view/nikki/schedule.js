@@ -115,7 +115,13 @@ return view.extend({
         end.default = '22:00';
         for (const option of [start, end]) {
             option.rmempty = false;
-            option.placeholder = 'HH:MM';
+            option.renderWidget = function () {
+                const node = form.Value.prototype.renderWidget.apply(this, arguments);
+                const input = node.querySelector('input');
+                input.type = 'time';
+                input.step = '60';
+                return node;
+            };
             option.validate = function (id, time) {
                 if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time) || time.length !== 5)
                     return _('Use HH:MM in 24-hour format.');
