@@ -4,7 +4,7 @@ import { popen, mkstemp, readfile, writefile, rename, open } from 'fs';
 
 function shell_quote(value) {
 	return "'" + replace(value, /'/g, "'\\''") + "'";
-}
+};
 
 export function path_encode(value) {
 	let result = '';
@@ -13,11 +13,11 @@ export function path_encode(value) {
 		result += match(ch, /^[A-Za-z0-9_.~-]$/) ? ch : sprintf('%%%02X', ord(value, i));
 	}
 	return result;
-}
+};
 
 function curlquote(value) {
 	return '"' + replace(replace(value, /\\/g, '\\\\'), /"/g, '\\"') + '"';
-}
+};
 
 // Keep credentials out of argv, RPC results, logs and named temporary files.
 // mkstemp() unlinks the file immediately; curl reads the inherited descriptor.
@@ -67,13 +67,13 @@ export function proxy_api(profile, method, path, body) {
 	} catch (e) {
 		return { ok: false, error: 'Mihomo API request failed.' };
 	}
-}
+};
 
 function request(profile, method, path, body) {
 	const result = proxy_api(profile, method, path, body);
 	if (!result.ok) die(result.error);
 	return result.data;
-}
+};
 
 export function get_groups(profile) {
 	const proxies = request(profile, 'GET', '/proxies', null)?.proxies;
@@ -84,13 +84,13 @@ export function get_groups(profile) {
 			groups[name] = { type: proxy.type, all: proxy.all, now: proxy.now };
 	}
 	return groups;
-}
+};
 
 function minutes(value) {
 	if (type(value) != 'string' || length(value) != 5 || !match(value, /^([01][0-9]|2[0-3]):[0-5][0-9]$/))
 		return null;
 	return int(substr(value, 0, 2), 10) * 60 + int(substr(value, 3, 2), 10);
-}
+};
 
 export function plan(rules, proxies, minute) {
 	const enabled = filter(rules, rule => rule.enabled == '1');
@@ -118,7 +118,7 @@ export function plan(rules, proxies, minute) {
 		}
 		return result;
 	});
-}
+};
 
 export function reconcile(rules, minute, profile) {
 	if (!length(filter(rules, rule => rule.enabled == '1'))) return [];
@@ -140,13 +140,13 @@ export function reconcile(rules, minute, profile) {
 		}
 	}
 	return results;
-}
+};
 
 export const schedule_status_path = '/var/run/nikki/proxy_schedule.json';
 
 export function read_schedule_status() {
 	try { return json(readfile(schedule_status_path) || '{}'); } catch (e) { return {}; }
-}
+};
 
 export function check_due(previous, signature, now, minute, interval, force) {
 	// Retry failures and changed settings on the next minute, even with a long interval.
@@ -154,7 +154,7 @@ export function check_due(previous, signature, now, minute, interval, force) {
 		length(filter(previous.rules || [], result => !!result.error)) > 0 ||
 		minute % interval == 0 || !previous.checked_at || now < previous.checked_at ||
 		now - previous.checked_at >= interval * 60;
-}
+};
 
 export function save_schedule_status(status) {
 	const previous = read_schedule_status();
@@ -169,4 +169,4 @@ export function save_schedule_status(status) {
 	}
 	if (writefile(schedule_status_path + '.new', sprintf('%J', status)) != null)
 		rename(schedule_status_path + '.new', schedule_status_path);
-}
+};
