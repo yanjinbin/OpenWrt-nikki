@@ -83,17 +83,46 @@ return view.extend({
             return section.formvalue(id, name) ?? uci.get('nikki_schedule', id, name);
         }
 
-        function uniqueGroup(id, name, active) {
-            if (active !== '1') return true;
-            return !s.cfgsections().some(function (other) {
-                return other !== id && value(s, other, 'enabled') === '1' && value(s, other, 'group') === name;
-            }) || _('Only one enabled schedule is allowed per group.');
+        function periods(start, end) {
+            if (![start, end].every(time => typeof time === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(time) && time.length === 5) || start === end)
+                return [];
+            const minute = time => Number(time.slice(0, 2)) * 60 + Number(time.slice(3));
+            const from = minute(start), to = minute(end);
+            return from < to ? [[from, to]] : [[from, 1440], [0, to]];
         }
+
+        function validatePeriod(section, id, override = {}) {
+            const field = name => Object.hasOwn(override, name) ? override[name] : value(section, id, name);
+            if (field('enabled') !== '1') return true;
+            const name = field('group');
+            const ranges = periods(field('start_time'), field('end_time'));
+            for (const other of s.cfgsections()) {
+                if (other === id || value(s, other, 'enabled') !== '1' || value(s, other, 'group') !== name) continue;
+                const start = value(s, other, 'start_time'), end = value(s, other, 'end_time');
+                if (ranges.some(range => periods(start, end).some(peer => range[0] < peer[1] && peer[0] < range[1])))
+                    return _('This period overlaps with another enabled schedule:') + ' ' + name + ' (' + start + '–' + end + ').';
+            }
+            return true;
+        }
+
+        s.handleModalSave = function (modalMap, ev) {
+            const node = this.getActiveModalMap();
+            node.querySelector('[data-schedule-error]')?.remove();
+            const error = validatePeriod(modalMap.children[0], modalMap.section);
+            if (error !== true) {
+                node.prepend(E('div', { 'class': 'alert-message error', 'data-schedule-error': '' }, [
+                    E('strong', {}, _('Cannot save schedule')),
+                    E('p', {}, error)
+                ]));
+                return Promise.resolve();
+            }
+            return form.GridSection.prototype.handleModalSave.call(this, modalMap, ev);
+        };
 
         function validateGroups(section) {
             for (const scope of new Set([s, section])) {
                 for (const id of s.cfgsections()) {
-                    for (const option of scope.children.filter(o => o.option === 'enabled' || o.option === 'group'))
+                    for (const option of scope.children.filter(o => ['enabled', 'group', 'start_time', 'end_time'].includes(o.option)))
                         option.getUIElement?.(id)?.triggerValidation();
                 }
             }
@@ -101,12 +130,12 @@ return view.extend({
         enabled.onchange = function () { validateGroups(this.section); };
         enabled.validate = function (id) {
             // Checkbox validators receive the input value even when unchecked.
-            return uniqueGroup(id, value(this.section, id, 'group'), this.formvalue(id));
+            return validatePeriod(this.section, id, { enabled: this.formvalue(id) });
         };
         group.validate = function (id, name) {
             if (!status.error && value(this.section, id, 'enabled') === '1' && !Object.hasOwn(groups, name))
                 return _('Select a running Selector group.');
-            return uniqueGroup(id, name, value(this.section, id, 'enabled'));
+            return validatePeriod(this.section, id, { group: name });
         };
 
         const start = s.option(form.Value, 'start_time', _('Start Time'));
@@ -126,11 +155,11 @@ return view.extend({
                 if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time) || time.length !== 5)
                     return _('Use HH:MM in 24-hour format.');
                 const other = this.option === 'start_time' ? 'end_time' : 'start_time';
-                return time !== value(this.section, id, other) || _('Start and end times must differ.');
+                if (time === value(this.section, id, other)) return _('Start and end times must differ.');
+                return validatePeriod(this.section, id, { [this.option]: time });
             };
             option.onchange = function (ev, id) {
-                for (const sibling of this.section.children.filter(o => o.option === 'start_time' || o.option === 'end_time'))
-                    sibling.getUIElement(id)?.triggerValidation();
+                validateGroups(this.section);
             };
         }
 

@@ -92,10 +92,18 @@ function minutes(value) {
 	return int(substr(value, 0, 2), 10) * 60 + int(substr(value, 3, 2), 10);
 };
 
+function periods_overlap(start, end, other_start, other_end) {
+	if (other_start == null || other_end == null || other_start == other_end) return false;
+	const periods = start < end ? [[start, end]] : [[start, 1440], [0, end]];
+	const others = other_start < other_end ? [[other_start, other_end]] : [[other_start, 1440], [0, other_end]];
+	for (let period in periods)
+		for (let other in others)
+			if (period[0] < other[1] && other[0] < period[1]) return true;
+	return false;
+};
+
 export function plan(rules, proxies, minute) {
 	const enabled = filter(rules, rule => rule.enabled == '1');
-	const counts = {};
-	for (let rule in enabled) counts[rule.group] = (counts[rule.group] ?? 0) + 1;
 	return map(enabled, function(rule) {
 		const result = { section: rule['.name'], group: rule.group, changed: false, config: rule };
 		const start = minutes(rule.start_time);
@@ -103,8 +111,9 @@ export function plan(rules, proxies, minute) {
 		const proxy = proxies[rule.group];
 		if (!rule.group || !rule.inside || start == null || end == null || start == end)
 			result.error = 'Set a group, a selection and distinct HH:MM times.';
-		else if (counts[rule.group] > 1)
-			result.error = 'Only one enabled schedule is allowed per group.';
+		else if (length(filter(enabled, other => other != rule && other.group == rule.group &&
+			periods_overlap(start, end, minutes(other.start_time), minutes(other.end_time)))))
+			result.error = 'Enabled schedules for the same group must not overlap.';
 		else if (proxy?.type != 'Selector' || type(proxy.all) != 'array')
 			result.error = 'The proxy group is missing or is not a Selector.';
 		else if (index(proxy.all, rule.inside) < 0)

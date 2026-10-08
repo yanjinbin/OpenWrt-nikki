@@ -1180,7 +1180,7 @@ msgstr ""
 msgid "Proxy Group"
 msgstr ""
 
-msgid "Only one enabled schedule is allowed per group."
+msgid "Enabled schedules for the same group must not overlap."
 msgstr ""
 
 msgid "Select a running Selector group."
@@ -1250,4 +1250,10 @@ msgid "A scheduled selection is missing from the group."
 msgstr ""
 
 msgid "Cannot read the running Mihomo profile."
+msgstr ""
+
+msgid "This period overlaps with another enabled schedule:"
+msgstr ""
+
+msgid "Cannot save schedule"
 msgstr ""

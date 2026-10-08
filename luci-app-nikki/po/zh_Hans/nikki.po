@@ -1187,8 +1187,8 @@ msgstr "规则启用时，时段内的检查会覆盖手动选择；时段外保
 msgid "Proxy Group"
 msgstr "代理组"
 
-msgid "Only one enabled schedule is allowed per group."
-msgstr "同一代理组只能启用一条定时规则。"
+msgid "Enabled schedules for the same group must not overlap."
+msgstr "同一代理组的启用时段不能重叠。"
 
 msgid "Select a running Selector group."
 msgstr "请选择正在运行的手动选择（Selector）代理组。"
@@ -1258,3 +1258,9 @@ msgstr "代理组中不存在配置的切换目标。"
 
 msgid "Cannot read the running Mihomo profile."
 msgstr "无法读取正在运行的 Mihomo 配置。"
+
+msgid "This period overlaps with another enabled schedule:"
+msgstr "此时间段与另一条已启用规则重叠："
+
+msgid "Cannot save schedule"
+msgstr "无法保存定时规则"

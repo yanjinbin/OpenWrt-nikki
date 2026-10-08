@@ -77,6 +77,18 @@ class ScheduleTest(unittest.TestCase):
             with self.subTest(groups=groups):
                 self.assertIn("error", self.plan(groups=groups)[0])
 
+    def test_same_group_disjoint_daily_and_overnight_periods(self):
+        rules = [rule(end_time="23:00"), rule(**{".name": "overnight", "start_time": "23:01", "end_time": "17:59", "inside": OUTSIDE})]
+        for minute, target in ((0, OUTSIDE), (1078, OUTSIDE), (1079, None), (1080, INSIDE), (1379, INSIDE), (1380, None), (1381, OUTSIDE)):
+            results = self.plan(rules, minute)
+            self.assertTrue(all("error" not in item for item in results), results)
+            self.assertEqual([item["target"] for item in results if "target" in item], [] if target is None else [target])
+
+    def test_overlap_and_touching_boundaries(self):
+        for start, end, conflict in (("22:00", "06:00", False), ("21:59", "06:00", True), ("17:00", "23:00", True), ("19:00", "20:00", True), ("00:00", "18:00", False), ("22:00", "00:00", False)):
+            results = self.plan([rule(), rule(**{".name": "second", "start_time": start, "end_time": end})])
+            self.assertEqual(all("error" in item for item in results), conflict, (start, end, results))
+
     def test_matching_selection_is_unchanged(self):
         self.assertFalse(self.plan(groups=proxies(INSIDE))[0]["changed"])
         self.assertTrue(self.plan()[0]["changed"])

@@ -14,6 +14,7 @@ function render(status = {}, rows = [{ '.name': 'first', enabled: '1', group: '�
         renderWidget() { return this.keylist; }
     }
     const form = { Value, ListValue: Value, Flag: Value, DummyValue: Value,
+        GridSection: class { handleModalSave() { return Promise.resolve("saved"); } },
         Map: class {
             section() {
                 return { children: [], cfgsections: () => rows.map(row => row['.name']),
@@ -56,9 +57,9 @@ test('targets use the selected group and preserve exact Unicode names', () => {
     assert.deepEqual(changes, [['', 'DIRECT'], '']);
 });
 
-test('duplicate enabled groups are rejected, disabled duplicates are allowed', () => {
-    const rows = [{ '.name': 'first', enabled: '1', group: '油管' },
-        { '.name': 'second', enabled: '1', group: '油管' }];
+test('overlapping enabled periods are rejected, disabled overlaps are allowed', () => {
+    const rows = [{ '.name': 'first', enabled: '1', group: '油管', start_time: '18:00', end_time: '23:00' },
+        { '.name': 'second', enabled: '1', group: '油管', start_time: '22:00', end_time: '06:00' }];
     const options = render({}, rows);
     assert.notEqual(options.group.validate('first', '油管'), true);
     assert.notEqual(options.enabled.validate('first', '1'), true);
@@ -126,4 +127,34 @@ test('outside-period status reports no change and ignores legacy outside setting
     const config = { ...row, outside: 'different legacy target' };
     const options = render({}, [row], { running: true, rules: [{ section: 'first', config, period: 'outside', current: 'manual' }] });
     assert.equal(options._status.textvalue('first').text, 'Outside period; selection unchanged');
+});
+
+test('same-group daily and overnight rules save when periods do not overlap', () => {
+    const rows = [{ '.name': 'first', enabled: '1', group: '油管', start_time: '18:00', end_time: '23:00' },
+        { '.name': 'second', enabled: '1', group: '油管', start_time: '23:01', end_time: '17:59' }];
+    const options = render({}, rows);
+    for (const row of rows) {
+        assert.equal(options.group.validate(row['.name'], row.group), true);
+        assert.equal(options.enabled.validate(row['.name']), true);
+        assert.equal(options.start_time.validate(row['.name'], row.start_time), true);
+        assert.equal(options.end_time.validate(row['.name'], row.end_time), true);
+    }
+    assert.match(options.start_time.validate('second', '22:59'), /18:00.*23:00/);
+    assert.equal(options.start_time.validate('second', '23:00'), true);
+});
+
+test('modal save shows an overlap message and permits corrected periods', async () => {
+    const rows = [{ '.name': 'first', enabled: '1', group: '油管', start_time: '18:00', end_time: '23:00' },
+        { '.name': 'second', enabled: '1', group: '油管', start_time: '23:01', end_time: '17:59' }];
+    const options = render({}, rows);
+    const section = options.group.section;
+    const notices = [];
+    section.getActiveModalMap = () => ({ querySelector: () => null, prepend: node => notices.push(node) });
+    const current = { ...rows[1], start_time: '22:59' };
+    const modal = { section: 'second', children: [{ formvalue: (_, key) => current[key] }] };
+    assert.equal(await section.handleModalSave(modal), undefined);
+    assert.equal(notices[0].text[0].text, 'Cannot save schedule');
+    assert.match(notices[0].text[1].text, /油管.*18:00.*23:00/);
+    current.start_time = '23:01';
+    assert.equal(await section.handleModalSave(modal), 'saved');
 });
