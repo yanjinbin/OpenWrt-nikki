@@ -1181,8 +1181,8 @@ msgstr "定时规则"
 msgid "Edit Schedule"
 msgstr "编辑定时规则"
 
-msgid "Enabled schedules override manual selections at the next check. Existing connections stay open. Other traffic using the same group is also affected."
-msgstr "规则启用时，下次检查会覆盖手动选择。已有连接保持不变；使用同一代理组的其他流量也会受影响。"
+msgid "During the period, enabled schedules override manual selections at the next check. Outside the period, selections stay unchanged. Existing connections stay open. Other traffic using the same group is also affected."
+msgstr "规则启用时，时段内的检查会覆盖手动选择；时段外保持当前选择。已有连接保持不变；使用同一代理组的其他流量也会受影响。"
 
 msgid "Proxy Group"
 msgstr "代理组"
@@ -1208,8 +1208,8 @@ msgstr "开始和结束时间不能相同。"
 msgid "During Period"
 msgstr "时段内选择"
 
-msgid "Outside Period"
-msgstr "时段外选择"
+msgid "Outside period; selection unchanged"
+msgstr "时段外，保持当前选择"
 
 msgid "-- Please choose --"
 msgstr "-- 请选择 --"
@@ -1247,8 +1247,8 @@ msgstr "Mihomo API 请求失败。"
 msgid "Mihomo API returned no proxy groups."
 msgstr "Mihomo API 未返回代理组。"
 
-msgid "Set a group, two selections and distinct HH:MM times."
-msgstr "请设置代理组、两个目标和不同的 HH:MM 起止时间。"
+msgid "Set a group, a selection and distinct HH:MM times."
+msgstr "请设置代理组、时段内目标和不同的 HH:MM 起止时间。"
 
 msgid "The proxy group is missing or is not a Selector."
 msgstr "代理组不存在或不是 Selector 类型。"

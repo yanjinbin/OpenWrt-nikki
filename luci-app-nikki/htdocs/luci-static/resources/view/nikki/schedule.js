@@ -42,7 +42,7 @@ return view.extend({
         o.cfgvalue = function () { return E('span', { id: 'nikki-schedule-check' }, runtime.local_time || _('Waiting for check')); };
 
         s = m.section(form.GridSection, 'proxy_schedule', _('Schedules'),
-            _('Enabled schedules override manual selections at the next check. Existing connections stay open. Other traffic using the same group is also affected.'));
+            _('During the period, enabled schedules override manual selections at the next check. Outside the period, selections stay unchanged. Existing connections stay open. Other traffic using the same group is also affected.'));
         s.addremove = true;
         s.anonymous = true;
         s.modaltitle = _('Edit Schedule');
@@ -135,23 +135,20 @@ return view.extend({
         }
 
         const inside = s.option(form.ListValue, 'inside', _('During Period'));
-        const outside = s.option(form.ListValue, 'outside', _('Outside Period'));
-        for (const option of [inside, outside]) {
-            option.rmempty = false;
-            option.renderWidget = function (id, index, current) {
-                const names = groups[value(this.section, id, 'group')]?.all || [];
-                return renderChoices(this, id, index, current, names);
-            };
-            option.validate = function (id, name) {
-                if (status.error || value(this.section, id, 'enabled') !== '1') return true;
-                return groups[value(this.section, id, 'group')]?.all?.includes(name) || _('Select an option from this proxy group.');
-            };
-        }
+        inside.rmempty = false;
+        inside.renderWidget = function (id, index, current) {
+            const names = groups[value(this.section, id, 'group')]?.all || [];
+            return renderChoices(this, id, index, current, names);
+        };
+        inside.validate = function (id, name) {
+            if (status.error || value(this.section, id, 'enabled') !== '1') return true;
+            return groups[value(this.section, id, 'group')]?.all?.includes(name) || _('Select an option from this proxy group.');
+        };
 
         group.onchange = function (ev, id, name) {
             const names = groups[name]?.all || [];
             // GridSection clones options into the edit dialog; use that dialog's controls.
-            for (const option of this.section.children.filter(o => o.option === 'inside' || o.option === 'outside')) {
+            for (const option of this.section.children.filter(o => o.option === 'inside')) {
                 const widget = option.getUIElement(id);
                 if (!widget) continue;
                 const current = widget.getValue();
@@ -171,10 +168,11 @@ return view.extend({
             const result = (runtime.rules || []).find(row => row.section === id);
             const globalError = (runtime.rules || []).find(row => !row.section && row.error);
             if (!result) return globalError ? _(globalError.error) : _('Waiting for check');
-            if (['enabled', 'group', 'inside', 'outside', 'start_time', 'end_time'].some(
+            if (['enabled', 'group', 'inside', 'start_time', 'end_time'].some(
                 key => (result.config?.[key] || '') !== (uci.get('nikki_schedule', id, key) || '')))
                 return _('Waiting for check');
             if (result.error) return _(result.error);
+            if (result.period === 'outside') return _('Outside period; selection unchanged');
             return (result.changed ? _('Switched to') : _('Selection matches')) + ': ' + result.current;
         }
         o = s.option(form.DummyValue, '_status', _('Schedule Status'));

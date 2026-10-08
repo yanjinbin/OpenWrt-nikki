@@ -44,17 +44,17 @@ class ScheduleTest(unittest.TestCase):
             "proxies": groups if groups is not None else proxies(), "minute": now})
 
     def test_daily_boundaries(self):
-        for minute, target in ((0, OUTSIDE), (1079, OUTSIDE), (1080, INSIDE),
-                               (1319, INSIDE), (1320, OUTSIDE), (1439, OUTSIDE)):
+        for minute, target in ((0, None), (1079, None), (1080, INSIDE),
+                               (1319, INSIDE), (1320, None), (1439, None)):
             with self.subTest(minute=minute):
-                self.assertEqual(self.plan(now=minute)[0]["target"], target)
+                self.assertEqual(self.plan(now=minute)[0].get("target"), target)
 
     def test_overnight_boundaries(self):
         rules = [rule(start_time="22:00", end_time="06:00")]
-        for minute, target in ((1319, OUTSIDE), (1320, INSIDE), (0, INSIDE),
-                               (359, INSIDE), (360, OUTSIDE)):
+        for minute, target in ((1319, None), (1320, INSIDE), (0, INSIDE),
+                               (359, INSIDE), (360, None)):
             with self.subTest(minute=minute):
-                self.assertEqual(self.plan(rules, minute)[0]["target"], target)
+                self.assertEqual(self.plan(rules, minute)[0].get("target"), target)
 
     def test_invalid_times_and_missing_fields(self):
         for fields in ({"start_time": "8:00"}, {"start_time": "24:00"},
@@ -73,13 +73,30 @@ class ScheduleTest(unittest.TestCase):
 
     def test_missing_group_type_or_candidate(self):
         for groups in ({}, {GROUP: {"type": "Fallback", "all": [INSIDE, OUTSIDE]}},
-                       {GROUP: {"type": "Selector", "all": [INSIDE]}}):
+                       {GROUP: {"type": "Selector", "all": [OUTSIDE]}}):
             with self.subTest(groups=groups):
                 self.assertIn("error", self.plan(groups=groups)[0])
 
     def test_matching_selection_is_unchanged(self):
         self.assertFalse(self.plan(groups=proxies(INSIDE))[0]["changed"])
         self.assertTrue(self.plan()[0]["changed"])
+
+    def test_outside_target_is_optional_and_legacy_values_are_ignored(self):
+        for outside in (None, "", "deleted target"):
+            value = rule(outside=outside)
+            if outside is None:
+                del value["outside"]
+            result = self.plan([value])[0]
+            self.assertNotIn("error", result)
+            self.assertEqual(result["target"], INSIDE)
+
+    def test_outside_period_preserves_any_current_selection(self):
+        for current in (INSIDE, OUTSIDE, "manual selection"):
+            result = self.plan(now=1320, groups=proxies(current))[0]
+            self.assertEqual(result["period"], "outside")
+            self.assertEqual(result["current"], current)
+            self.assertFalse(result["changed"])
+            self.assertNotIn("target", result)
 
     def test_leading_zero_hours(self):
         self.assertEqual(self.plan([rule(start_time="08:00", end_time="09:00")],
@@ -132,10 +149,10 @@ class ControllerTest(unittest.TestCase):
         self.server.server_close()
         self.thread.join()
 
-    def reconcile(self, rules=None):
+    def reconcile(self, rules=None, minute=1080):
         return self.evaluate("schedule.reconcile(data.rules, data.minute, data.profile)", {
             "rules": rules if rules is not None else [rule()],
-            "minute": 1080, "profile": self.profile})
+            "minute": minute, "profile": self.profile})
 
     def test_switch_is_encoded_authenticated_and_idempotent(self):
         from urllib.parse import quote
@@ -146,6 +163,16 @@ class ControllerTest(unittest.TestCase):
         self.calls.clear()
         self.assertFalse(self.reconcile()[0]["changed"])
         self.assertEqual(len(self.calls), 1)
+
+    def test_period_end_and_manual_changes_do_not_send_put(self):
+        self.reconcile()
+        for minute, current in ((1320, INSIDE), (1439, OUTSIDE), (0, INSIDE)):
+            self.current = current
+            self.calls.clear()
+            result = self.reconcile(minute=minute)[0]
+            self.assertFalse(result["changed"])
+            self.assertEqual(self.current, current)
+            self.assertTrue(all(call[0] == "GET" for call in self.calls))
 
     def test_failed_switch_is_retried_next_run(self):
         self.put_status = 400

@@ -4,7 +4,7 @@ import test from 'node:test';
 
 const source = readFileSync(new URL('../luci-app-nikki/htdocs/luci-static/resources/view/nikki/schedule.js', import.meta.url), 'utf8');
 
-function render(status = {}, rows = [{ '.name': 'first', enabled: '1', group: '油管' }]) {
+function render(status = {}, rows = [{ '.name': 'first', enabled: '1', group: '油管' }], runtime = {}) {
     const options = {};
     class Value {
         constructor(name) { this.option = name; this.choices = []; }
@@ -29,9 +29,9 @@ function render(status = {}, rows = [{ '.name': 'first', enabled: '1', group: '�
         }
     };
     const view = new Function('view', 'form', '_', 'uci', 'poll', 'E', source)(
-        { extend: value => value }, form, value => value, { get() {} }, { add() {} }, (tag, attrs, text) => ({ tag, attrs, text }));
+        { extend: value => value }, form, value => value, { get: (_, id, name) => rows.find(row => row['.name'] === id)?.[name] }, { add() {} }, (tag, attrs, text) => ({ tag, attrs, text }));
     view.render([null, { groups: { '油管': { all: ['🇺🇸-ai专用-dmit', '高质量节点-select'] },
-        'Other': { all: ['DIRECT'] } }, ...status }]);
+        'Other': { all: ['DIRECT'] } }, ...status }, runtime]);
     return options;
 }
 
@@ -47,13 +47,13 @@ test('targets use the selected group and preserve exact Unicode names', () => {
     assert.equal(options.inside.validate('first', '🇺🇸-ai专用-dmit'), true);
     assert.notEqual(options.inside.validate('first', 'DIRECT'), true);
     const changes = [];
-    for (const option of [options.inside, options.outside]) {
+    for (const option of [options.inside]) {
         option.getUIElement = () => ({ getValue: () => '🇺🇸-ai专用-dmit',
             node: { querySelector: () => ({ replaceChildren: (...nodes) => changes.push(nodes.map(node => node.attrs.value)), dispatchEvent() {} }) },
             setValue: value => changes.push(value) });
     }
     options.group.onchange(null, 'first', 'Other');
-    assert.deepEqual(changes, [['', 'DIRECT'], '', ['', 'DIRECT'], '']);
+    assert.deepEqual(changes, [['', 'DIRECT'], '']);
 });
 
 test('duplicate enabled groups are rejected, disabled duplicates are allowed', () => {
@@ -85,14 +85,14 @@ test('modal copies resolve sibling values and widgets from their own section', (
     const calls = [];
     const section = {
         formvalue: (_, name) => ({ group: 'Other', enabled: '1', start_time: '22:00', end_time: '06:00' })[name],
-        children: ['inside', 'outside'].map(name => ({ option: name, getUIElement: () => ({
+        children: ['inside'].map(name => ({ option: name, getUIElement: () => ({
             getValue: () => 'old', node: { querySelector: () => ({ replaceChildren: (...nodes) => calls.push(nodes.map(node => node.attrs.value)), dispatchEvent() {} }) },
             setValue: value => calls.push(value)
         }) }))
     };
     const group = { ...options.group, section };
     group.onchange(null, 'first', 'Other');
-    assert.deepEqual(calls, [['', 'DIRECT'], '', ['', 'DIRECT'], '']);
+    assert.deepEqual(calls, [['', 'DIRECT'], '']);
     const inside = { ...options.inside, section };
     assert.deepEqual(inside.renderWidget('first'), ['', 'DIRECT']);
     assert.equal(inside.validate('first', 'DIRECT'), true);
@@ -106,7 +106,7 @@ test('saved choices remain selectable while discovery is unavailable', () => {
     assert.deepEqual(options.group.renderWidget('first', 0, '油管'), ['', '油管']);
     assert.deepEqual(options.inside.renderWidget('first', 0, 'saved target'), ['', 'saved target']);
     assert.match(options.inside.vallist[1], /Unavailable/);
-    for (const name of ['group', 'inside', 'outside'])
+    for (const name of ['group', 'inside'])
         assert.ok(source.includes("s.option(form.ListValue, '" + name + "'"));
 });
 
@@ -114,4 +114,16 @@ test('an unchecked rule can be saved even when the checkbox input value is one',
     const rows = [{ '.name': 'first', enabled: '0', group: '油管' },
         { '.name': 'second', enabled: '1', group: '油管' }];
     assert.equal(render({}, rows).enabled.validate('first', '1'), true);
+});
+
+test('only the in-period target is configurable', () => {
+    assert.ok(render().inside);
+    assert.equal(render().outside, undefined);
+});
+
+test('outside-period status reports no change and ignores legacy outside settings', () => {
+    const row = { '.name': 'first', enabled: '1', group: '油管', inside: 'DIRECT', start_time: '18:00', end_time: '22:00', outside: 'old target' };
+    const config = { ...row, outside: 'different legacy target' };
+    const options = render({}, [row], { running: true, rules: [{ section: 'first', config, period: 'outside', current: 'manual' }] });
+    assert.equal(options._status.textvalue('first').text, 'Outside period; selection unchanged');
 });

@@ -101,20 +101,22 @@ export function plan(rules, proxies, minute) {
 		const start = minutes(rule.start_time);
 		const end = minutes(rule.end_time);
 		const proxy = proxies[rule.group];
-		if (!rule.group || !rule.inside || !rule.outside || start == null || end == null || start == end)
-			result.error = 'Set a group, two selections and distinct HH:MM times.';
+		if (!rule.group || !rule.inside || start == null || end == null || start == end)
+			result.error = 'Set a group, a selection and distinct HH:MM times.';
 		else if (counts[rule.group] > 1)
 			result.error = 'Only one enabled schedule is allowed per group.';
 		else if (proxy?.type != 'Selector' || type(proxy.all) != 'array')
 			result.error = 'The proxy group is missing or is not a Selector.';
-		else if (index(proxy.all, rule.inside) < 0 || index(proxy.all, rule.outside) < 0)
+		else if (index(proxy.all, rule.inside) < 0)
 			result.error = 'A scheduled selection is missing from the group.';
 		else {
 			const inside = start < end ? minute >= start && minute < end : minute >= start || minute < end;
 			result.period = inside ? 'inside' : 'outside';
 			result.current = proxy.now;
-			result.target = inside ? rule.inside : rule.outside;
-			result.changed = proxy.now != result.target;
+			if (inside) {
+				result.target = rule.inside;
+				result.changed = proxy.now != result.target;
+			}
 		}
 		return result;
 	});
