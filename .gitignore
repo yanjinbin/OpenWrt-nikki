@@ -1,0 +1,8 @@
+# Local package inputs and build output.
+/.local-binaries/
+/.local-opkg/
+/dist-local/
+
+# Python test cache.
+__pycache__/
+*.py[cod]
