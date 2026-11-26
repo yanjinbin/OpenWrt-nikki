@@ -1,6 +1,10 @@
 msgid ""
 msgstr "Content-Type: text/plain; charset=UTF-8"
 
+#: applications/luci-app-nikki/htdocs/luci-static/resources/view/nikki/panel.js:22
+msgid "API has not been configured"
+msgstr ""
+
 #: applications/luci-app-nikki/htdocs/luci-static/resources/view/nikki/mixin.js:111
 msgid "API Listen"
 msgstr ""

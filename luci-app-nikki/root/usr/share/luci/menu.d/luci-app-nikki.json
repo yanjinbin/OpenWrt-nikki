@@ -9,6 +9,12 @@
             "uci": { "nikki": true }
         }
     },
+    "admin/services/nikki/panel": {
+        "action": {
+            "type": "view",
+            "path": "nikki/panel"
+        }
+    },
     "admin/services/nikki/config": {
         "title": "App Config",
         "order": 10,

@@ -8,6 +8,10 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Transfer-Encoding: 8bit\n"
 
+#: applications/luci-app-nikki/htdocs/luci-static/resources/view/nikki/panel.js:22
+msgid "API has not been configured"
+msgstr "API 尚未設定"
+
 #: applications/luci-app-nikki/htdocs/luci-static/resources/view/nikki/mixin.js:111
 msgid "API Listen"
 msgstr "API 監聽"

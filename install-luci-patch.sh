@@ -51,6 +51,9 @@ download "luci-app-nikki/htdocs/luci-static/resources/tools/nikki.js" \
 download "luci-app-nikki/htdocs/luci-static/resources/view/nikki/app.js" \
 	"/www/luci-static/resources/view/nikki/app.js"
 
+download "luci-app-nikki/htdocs/luci-static/resources/view/nikki/panel.js" \
+	"/www/luci-static/resources/view/nikki/panel.js"
+
 download "luci-app-nikki/htdocs/luci-static/resources/view/nikki/profile.js" \
 	"/www/luci-static/resources/view/nikki/profile.js"
 
